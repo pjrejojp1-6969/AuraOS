@@ -1,0 +1,18 @@
+# Computer Vision & Eye/Face Landmark Tracking
+opencv-python>=4.8.0
+mediapipe>=0.10.14
+numpy>=1.24.0,<2.0.0
+
+# Signal Processing (Live Camera rPPG Heart Rate Butterworth Filter)
+scipy>=1.11.0
+
+# OS Automation & Mouse/Keyboard Control
+pyautogui>=0.9.54
+
+# Asynchronous WebSocket Server Bridge (Ports 5006 & 8765)
+websockets>=12.0
+
+# Machine Learning Pipeline (data_collecter.py, train_model.py & Shadow ML Model)
+scikit-learn>=1.3.0
+joblib>=1.3.0
+pandas>=2.0.0

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraOS Virtual Keyboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #141923;
+      color: #f3f6fa;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .keyboard-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 14px 28px 20px;
+      gap: 12px;
+    }
+
+    /* Header & Status */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #10151f;
+      border: 1px solid #232d3f;
+      border-radius: 12px;
+      padding: 10px 20px;
+    }
+
+    .brand-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: #00f59b;
+      box-shadow: 0 0 10px #00f59b;
+    }
+
+    .status-dot.offline {
+      background: #ff4d4d;
+      box-shadow: 0 0 10px #ff4d4d;
+    }
+
+    .gesture-legend {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      background: #182030;
+      border: 1px solid #2b3852;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #cfd8ea;
+    }
+
+    .calib-btn {
+      border-color: #ff9100;
+      color: #ffcc80;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .yellow-badge {
+      border-color: #ffd600;
+      color: #ffe766;
+    }
+
+    .select-badge {
+      border-color: #00e5ff;
+      color: #80f2ff;
+    }
+
+    /* Composer Display Box */
+    .composer-box {
+      position: relative;
+      background: #0b0f17;
+      border: 2px solid #222d40;
+      border-radius: 14px;
+      min-height: 75px;
+      display: flex;
+      align-items: center;
+      padding: 12px 22px;
+      box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.55);
+    }
+
+    .typed-output {
+      font-size: 1.85rem;
+      font-weight: 600;
+      color: #ffffff;
+      word-break: break-word;
+      width: 100%;
+    }
+
+    .cursor {
+      display: inline-block;
+      margin-left: 3px;
+      color: #ffd600;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    .tts-banner {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #00f59b;
+      color: #06130e;
+      font-weight: 800;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .tts-banner.speaking {
+      opacity: 1;
+    }
+
+    /* Predictive Text Bar */
+    .prediction-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .pred-slot {
+      height: 48px !important;
+      background: #162032 !important;
+      border: 2px solid #2a3c5c !important;
+      color: #7ef9ff !important;
+      font-size: 1.2rem !important;
+      font-weight: 700 !important;
+    }
+
+    /* Main Keyboard Stage */
+    .keyboard-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .key-row {
+      display: grid;
+      grid-template-columns: repeat(14, 1fr);
+      gap: 8px;
+      flex: 1;
+    }
+
+    .key-row.bottom-controls {
+      grid-template-columns: 1.2fr 4fr 1.2fr 1.2fr 1.8fr;
+    }
+
+    .key-item {
+      background: #202838;
+      border: 1px solid #2c384e;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+    }
+
+    .purple-caps {
+      background: #7c3aed !important;
+      border-color: #8b5cf6 !important;
+      color: #ffffff !important;
+    }
+
+    .key-item.active-key {
+      border: 3.5px solid #facc15 !important;
+      background: #1e293b !important;
+      color: #facc15 !important;
+      box-shadow: 0 0 22px rgba(250, 204, 21, 0.45);
+      transform: scale(1.04);
+      z-index: 5;
+    }
+
+    .key-item.triggered-flash {
+      background: #22c55e !important;
+      color: #ffffff !important;
+    }
+
+    .action-key {
+      background: #182030;
+      font-size: 1rem;
+      color: #94a3b8;
+    }
+
+    .space-key {
+      background: #182030;
+    }
+
+    /* CENTER SPRING-RETURN DOT (Unified True Center HUD_HEIGHT_PX = 0) */
+    .center-spring-dot {
+      position: fixed;
+      left: 50vw;
+      top: 50vh;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 3px solid #fde047;
+      box-shadow: 0 0 18px #facc15, 0 0 32px rgba(245, 158, 11, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .center-spring-dot.return-needed {
+      background: #ff5722;
+      border-color: #ffffff;
+      box-shadow: 0 0 28px #ff5722, 0 0 44px rgba(255, 87, 34, 0.95);
+      transform: translate(-50%, -50%) scale(1.28);
+    }
+
+    .inner-white-core {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    /* 9-POINT CALIBRATION OVERLAY */
+    .calib-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 10, 16, 0.96);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calib-overlay.hidden {
+      display: none;
+    }
+
+    .calib-dot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #2b3346;
+      border: 2px solid #45526e;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calib-dot::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff0000;
+      box-shadow: 0 0 4px #ff0000;
+    }
+
+    .calib-dot.done {
+      width: 18px;
+      height: 18px;
+      background: #46a046;
+      border-color: #6ee66e;
+    }
+
+    .calib-dot.current {
+      width: 48px;
+      height: 48px;
+      background: #ff8c00;
+      border: 4px solid #191919;
+      box-shadow: 0 0 28px #ff8c00;
+    }
+
+    .calib-dot.recording {
+      width: 52px;
+      height: 52px;
+      background: #78ff00;
+      border: 4px solid #191919;
+      box-shadow: 0 0 34px #78ff00;
+    }
+
+    .calib-hud-card {
+      margin-top: 220px;
+      background: #0c0c0c;
+      border: 2px solid #2b3b4e;
+      border-radius: 16px;
+      padding: 22px 36px;
+      text-align: center;
+      max-width: 680px;
+    }
+
+    .calib-hud-card h2 {
+      color: #b4ff00;
+      font-size: 1.55rem;
+      margin-bottom: 8px;
+    }
+
+    .calib-progress {
+      margin-top: 10px;
+      color: #78ff00 !important;
+      font-weight: 700;
+      font-size: 1.2rem !important;
+    }
+
+    .calib-error {
+      margin-top: 6px;
+      color: #ff5252 !important;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="keyboard-app">
+    <!-- Top Status & Legend -->
+    <header class="top-bar">
+      <div class="brand-status">
+        <span id="ws-indicator" class="status-dot offline"></span>
+        <span id="ws-text">Connecting to AuraOS Master Engine...</span>
+      </div>
+      <div class="gesture-legend">
+        <span class="badge">👁️ Look: Move</span>
+        <span class="badge yellow-badge">🟡 Center Dot: Re-Arm Spring</span>
+        <span class="badge select-badge">😉 Left Wink: Select</span>
+        <button id="calib-btn" class="badge calib-btn" title="Run Hands-Free 9-point blink calibration">🎯 Press 'C': Calibrate</button>
+      </div>
+    </header>
+
+    <!-- Typed Text Display Box -->
+    <section class="composer-box" id="composer-box">
+      <div class="typed-output" id="typed-output">
+        <span id="typed-text"></span><span class="cursor">|</span>
+      </div>
+      <div class="tts-banner" id="tts-banner">🔊 Speaking aloud...</div>
+    </section>
+
+    <!-- Smart Word Prediction Bar -->
+    <section class="prediction-bar" aria-label="Smart Word Suggestions">
+      <div class="key-item pred-slot" data-row="0" data-col="0" data-action="PRED_0">—</div>
+      <div class="key-item pred-slot" data-row="0" data-col="1" data-action="PRED_1">—</div>
+      <div class="key-item pred-slot" data-row="0" data-col="2" data-action="PRED_2">—</div>
+      <div class="key-item pred-slot" data-row="0" data-col="3" data-action="PRED_3">—</div>
+    </section>
+
+    <!-- Main Keyboard Stage -->
+    <main class="keyboard-stage">
+      <!-- Number / Symbol Row -->
+      <div class="key-row" data-row-index="1">
+        <div class="key-item" data-row="1" data-col="0" data-key="~">~</div>
+        <div class="key-item" data-row="1" data-col="1" data-key="1">1</div>
+        <div class="key-item" data-row="1" data-col="2" data-key="2">2</div>
+        <div class="key-item" data-row="1" data-col="3" data-key="3">3</div>
+        <div class="key-item" data-row="1" data-col="4" data-key="4">4</div>
+        <div class="key-item" data-row="1" data-col="5" data-key="5">5</div>
+        <div class="key-item" data-row="1" data-col="6" data-key="6">6</div>
+        <div class="key-item" data-row="1" data-col="7" data-key="7">7</div>
+        <div class="key-item" data-row="1" data-col="8" data-key="8">8</div>
+        <div class="key-item" data-row="1" data-col="9" data-key="9">9</div>
+        <div class="key-item" data-row="1" data-col="10" data-key="0">0</div>
+        <div class="key-item" data-row="1" data-col="11" data-key="-">-</div>
+        <div class="key-item" data-row="1" data-col="12" data-key="+">+</div>
+        <div class="key-item action-key" data-row="1" data-col="13" data-action="BACKSPACE">⌫</div>
+      </div>
+
+      <!-- QWERTY Row -->
+      <div class="key-row" data-row-index="2">
+        <div class="key-item action-key" data-row="2" data-col="0" data-action="TAB">Tab</div>
+        <div class="key-item" data-row="2" data-col="1" data-key="Q">Q</div>
+        <div class="key-item" data-row="2" data-col="2" data-key="W">W</div>
+        <div class="key-item" data-row="2" data-col="3" data-key="E">E</div>
+        <div class="key-item" data-row="2" data-col="4" data-key="R">R</div>
+        <div class="key-item" data-row="2" data-col="5" data-key="T">T</div>
+        <div class="key-item" data-row="2" data-col="6" data-key="Y">Y</div>
+        <div class="key-item" data-row="2" data-col="7" data-key="U">U</div>
+        <div class="key-item" data-row="2" data-col="8" data-key="I">I</div>
+        <div class="key-item" data-row="2" data-col="9" data-key="O">O</div>
+        <div class="key-item" data-row="2" data-col="10" data-key="P">P</div>
+        <div class="key-item" data-row="2" data-col="11" data-key="{">{</div>
+        <div class="key-item" data-row="2" data-col="12" data-key="}">}</div>
+        <div class="key-item" data-row="2" data-col="13" data-key="|">|</div>
+      </div>
+
+      <!-- ASDF Row -->
+      <div class="key-row" data-row-index="3">
+        <div class="key-item action-key purple-caps" data-row="3" data-col="0" data-action="CAPS">Caps</div>
+        <div class="key-item" data-row="3" data-col="1" data-key="A">A</div>
+        <div class="key-item" data-row="3" data-col="2" data-key="S">S</div>
+        <div class="key-item" data-row="3" data-col="3" data-key="D">D</div>
+        <div class="key-item" data-row="3" data-col="4" data-key="F">F</div>
+        <div class="key-item" data-row="3" data-col="5" data-key="G">G</div>
+        <div class="key-item" data-row="3" data-col="6" data-key="H">H</div>
+        <div class="key-item" data-row="3" data-col="7" data-key="J">J</div>
+        <div class="key-item" data-row="3" data-col="8" data-key="K">K</div>
+        <div class="key-item" data-row="3" data-col="9" data-key="L">L</div>
+        <div class="key-item" data-row="3" data-col="10" data-key=";">;</div>
+        <div class="key-item" data-row="3" data-col="11" data-key="'">'</div>
+        <div class="key-item action-key enter-key" data-row="3" data-col="12" data-action="ENTER">Enter</div>
+      </div>
+
+      <!-- ZXCV Row -->
+      <div class="key-row" data-row-index="4">
+        <div class="key-item action-key" data-row="4" data-col="0" data-action="SHIFT">Shift</div>
+        <div class="key-item" data-row="4" data-col="1" data-key="Z">Z</div>
+        <div class="key-item" data-row="4" data-col="2" data-key="X">X</div>
+        <div class="key-item" data-row="4" data-col="3" data-key="C">C</div>
+        <div class="key-item" data-row="4" data-col="4" data-key="V">V</div>
+        <div class="key-item" data-row="4" data-col="5" data-key="B">B</div>
+        <div class="key-item" data-row="4" data-col="6" data-key="N">N</div>
+        <div class="key-item" data-row="4" data-col="7" data-key="M">M</div>
+        <div class="key-item" data-row="4" data-col="8" data-key=",">,</div>
+        <div class="key-item" data-row="4" data-col="9" data-key=".">.</div>
+        <div class="key-item" data-row="4" data-col="10" data-key="?">?</div>
+        <div class="key-item action-key" data-row="4" data-col="11" data-action="SHIFT">Shift</div>
+      </div>
+
+      <!-- BOTTOM CONTROL ROW -->
+      <div class="key-row bottom-controls" data-row-index="5">
+        <div class="key-item action-key" data-row="5" data-col="0" data-action="ALT">Alt</div>
+        <div class="key-item space-key" data-row="5" data-col="1" data-action="SPACE">Space</div>
+        <div class="key-item action-key" data-row="5" data-col="2" data-action="CTRL">Ctrl</div>
+        <div class="key-item action-key" data-row="5" data-col="3" data-action="ALT">Alt</div>
+        <div class="key-item action-key" data-row="5" data-col="4" data-action="SPEAK">🔊 Speak & Inject</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- CENTER SPRING-RETURN DOT -->
+  <div id="center-spring-anchor" class="center-spring-dot armed" title="Look here to re-arm joystick spring">
+    <div class="inner-white-core"></div>
+  </div>
+
+  <!-- 9-POINT CALIBRATION OVERLAY -->
+  <div id="calib-overlay" class="calib-overlay hidden">
+    <div class="calib-dot" data-pt="0" style="left: 28px; top: 28px;"></div>
+    <div class="calib-dot" data-pt="1" style="left: 50%; top: 28px;"></div>
+    <div class="calib-dot" data-pt="2" style="left: calc(100% - 28px); top: 28px;"></div>
+
+    <div class="calib-dot" data-pt="3" style="left: 28px; top: 50%;"></div>
+    <div class="calib-dot" data-pt="4" style="left: 50%; top: 50%;"></div>
+    <div class="calib-dot" data-pt="5" style="left: calc(100% - 28px); top: 50%;"></div>
+
+    <div class="calib-dot" data-pt="6" style="left: 28px; top: calc(100% - 28px);"></div>
+    <div class="calib-dot" data-pt="7" style="left: 50%; top: calc(100% - 28px);"></div>
+    <div class="calib-dot" data-pt="8" style="left: calc(100% - 28px); top: calc(100% - 28px);"></div>
+
+    <div class="calib-hud-card">
+      <h2 id="calib-title">HANDS-FREE 9-POINT CALIBRATION (1/9)</h2>
+      <p id="calib-sub">Look directly at the red center dot, then <strong>BLINK ONCE</strong> (or Left Wink) to capture</p>
+      <p id="calib-progress" class="calib-progress"></p>
+      <p id="calib-error" class="calib-error"></p>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Virtual Keyboard Frontend Engine (keyboard.js)
+     * - Connects to master_engine.py on ws://localhost:8765
+     * - Hands-Free 9-Point Blink Calibration when 'C' is pressed
+     * - Left Wink = Select key/prediction | Right Wink / Speak = Inject typed text back to website
+     */
+
+    const WS_URL = "ws://localhost:8765";
+    let activeSocket = null;
+    let isCalibrating = false;
+
+    const DICTIONARY = [
+      "HELLO", "HELL", "HELP", "HELD", "HEALTH", "HEAR", "HEART", "HEAT", "HEAVY",
+      "WATER", "WANT", "WARM", "WASH", "WATCH", "WALK", "WAIT", "WAKE", "WHERE", "WHEN",
+      "WHAT", "WHICH", "WHO", "WHY", "WITH", "WORK", "WORLD", "YES", "YOU", "YOUR",
+      "THANK", "THANKS", "THAT", "THE", "THEIR", "THEM", "THEN", "THERE", "THING", "THINK",
+      "TODAY", "TOGETHER", "TOMORROW", "TONIGHT", "TOO", "TAKE", "TALK", "TELL", "TIME",
+      "PAIN", "PLEASE", "PILLOW", "PHONE", "PEOPLE", "PLACE", "PLAY", "CALL", "CAN", "COME",
+      "COLD", "CHAIR", "CLEAN", "CLOSE", "DOCTOR", "DRINK", "DO", "DONE", "DOOR", "DOWN",
+      "NEED", "NEVER", "NEW", "NEXT", "NIGHT", "NO", "NOT", "NOW", "NURSE", "GOOD", "GO",
+      "GREAT", "GIVE", "GET", "MORNING", "MORE", "MEDICINE", "MAKE", "MAN", "ME", "MEAL",
+      "MOM", "DAD", "FAMILY", "FRIEND", "FEEL", "FINE", "FIND", "FIRST", "FOOD", "FOR",
+      "SLEEP", "SORRY", "SEE", "SICK", "SIT", "SMALL", "SOME", "SOON", "SPEAK", "STAND",
+      "START", "STAY", "STOP", "SURE", "LIGHT", "LIKE", "LITTLE", "LIVE", "LONG", "LOOK",
+      "LOVE", "LUNCH", "DINNER", "BREAKFAST", "BATHROOM", "BED", "BETTER", "BIG", "BOOK"
+    ];
+
+    const QWERTY_NEIGHBORS = {
+      Q: "WA", W: "QESA", E: "WSDR", R: "EDFT", T: "RFGY", Y: "TGHU", U: "YHJIK", I: "UJKO", O: "IKLP", P: "OL",
+      A: "QWSZ", S: "WEADZX", D: "ERSFXC", F: "RTDGCV", G: "TYFHVB", H: "YUGJBN", J: "UIHKNM", K: "IOJLM", L: "OPK",
+      Z: "ASX", X: "ZSDC", C: "XDFV", V: "CFGB", B: "VGHN", N: "BHJM", M: "NJK"
+    };
+
+    let activeRow = 2;
+    let activeCol = 4;
+    let typedBuffer = "";
+    let currentPredictions = ["HELLO", "PLEASE", "THANK", "WATER"];
+    const rowLengths = [4, 14, 14, 13, 12, 5];
+
+    const typedTextEl = document.getElementById("typed-text");
+    const ttsBannerEl = document.getElementById("tts-banner");
+    const wsIndicatorEl = document.getElementById("ws-indicator");
+    const wsTextEl = document.getElementById("ws-text");
+    const springAnchorEl = document.getElementById("center-spring-anchor");
+
+    const calibOverlayEl = document.getElementById("calib-overlay");
+    const calibTitleEl = document.getElementById("calib-title");
+    const calibProgressEl = document.getElementById("calib-progress");
+    const calibErrorEl = document.getElementById("calib-error");
+    const calibBtnEl = document.getElementById("calib-btn");
+
+    function typoDistance(a, b) {
+      const m = a.length;
+      const n = b.length;
+      const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (a[i - 1] === b[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            const isNeighbor = QWERTY_NEIGHBORS[a[i - 1]] && QWERTY_NEIGHBORS[a[i - 1]].includes(b[j - 1]);
+            dp[i][j] = Math.min(dp[i - 1][j] + 1.0, dp[i][j - 1] + 1.0, dp[i - 1][j - 1] + (isNeighbor ? 0.45 : 1.0));
+          }
+        }
+      }
+      return dp[m][n];
+    }
+
+    function getCurrentPartialWord() {
+      if (!typedBuffer || typedBuffer.endsWith(" ")) return "";
+      const parts = typedBuffer.trim().split(/\s+/);
+      return (parts[parts.length - 1] || "").replace(/[^A-Z]/gi, "").toUpperCase();
+    }
+
+    function updatePredictions() {
+      const partial = getCurrentPartialWord();
+      if (!partial) {
+        currentPredictions = ["HELLO", "PLEASE", "WATER", "THANK"];
+      } else {
+        const scored = [];
+        for (const word of DICTIONARY) {
+          if (word.startsWith(partial)) {
+            scored.push({ word, score: (word.length - partial.length) * 0.05 });
+            continue;
+          }
+          const bestDist = Math.min(typoDistance(partial, word), typoDistance(partial, word.slice(0, partial.length + 1)));
+          if (bestDist <= 2.2) scored.push({ word, score: 1.0 + bestDist });
+        }
+        scored.sort((a, b) => a.score - b.score);
+        const unique = [];
+        for (const item of scored) {
+          if (!unique.includes(item.word)) unique.push(item.word);
+          if (unique.length >= 4) break;
+        }
+        while (unique.length < 4) unique.push(partial);
+        currentPredictions = unique;
+      }
+
+      for (let i = 0; i < 4; i++) {
+        const slot = document.querySelector(`.pred-slot[data-col="${i}"]`);
+        if (slot) slot.textContent = currentPredictions[i] || "—";
+      }
+    }
+
+    function renderActiveSelection() {
+      document.querySelectorAll(".key-item").forEach((el) => {
+        const r = parseInt(el.getAttribute("data-row"), 10);
+        const c = parseInt(el.getAttribute("data-col"), 10);
+        el.classList.toggle("active-key", r === activeRow && c === activeCol);
+      });
+    }
+
+    function mapColBetweenRows(oldRow, oldCol, newRow) {
+      const oldMax = rowLengths[oldRow] - 1;
+      const newMax = rowLengths[newRow] - 1;
+      if (oldMax <= 0 || newMax <= 0) return 0;
+      return Math.round((oldCol / oldMax) * newMax);
+    }
+
+    function moveSelection(dir) {
+      if (isCalibrating) return;
+      const oldRow = activeRow;
+      const oldCol = activeCol;
+
+      if (dir === "UP") {
+        activeRow = Math.max(0, activeRow - 1);
+        activeCol = mapColBetweenRows(oldRow, oldCol, activeRow);
+      } else if (dir === "DOWN") {
+        activeRow = Math.min(rowLengths.length - 1, activeRow + 1);
+        activeCol = mapColBetweenRows(oldRow, oldCol, activeRow);
+      } else if (dir === "LEFT") {
+        activeCol = Math.max(0, activeCol - 1);
+      } else if (dir === "RIGHT") {
+        activeCol = Math.min(rowLengths[activeRow] - 1, activeCol + 1);
+      }
+      renderActiveSelection();
+    }
+
+    function replaceLastPartialWord(newWord) {
+      if (!typedBuffer || typedBuffer.endsWith(" ")) {
+        typedBuffer += newWord + " ";
+      } else {
+        const lastSpaceIdx = typedBuffer.lastIndexOf(" ");
+        typedBuffer = lastSpaceIdx === -1 ? newWord + " " : typedBuffer.slice(0, lastSpaceIdx + 1) + newWord + " ";
+      }
+    }
+
+    function injectTypedText() {
+      if (isCalibrating) return;
+      const clean = (typedBuffer || "").trim();
+      const message = clean ? clean : "Please type something first";
+
+      ttsBannerEl.textContent = `🔊 Injecting: "${message}"`;
+      ttsBannerEl.classList.add("speaking");
+      setTimeout(() => ttsBannerEl.classList.remove("speaking"), 2500);
+
+      if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        activeSocket.send(JSON.stringify({ command: "inject_text", text: message }));
+      }
+    }
+
+    function triggerActiveKey() {
+      if (isCalibrating) return;
+      const activeEl = document.querySelector(`.key-item[data-row="${activeRow}"][data-col="${activeCol}"]`);
+      if (!activeEl) return;
+
+      activeEl.classList.add("triggered-flash");
+      setTimeout(() => activeEl.classList.remove("triggered-flash"), 180);
+
+      const keyChar = activeEl.getAttribute("data-key");
+      const action = activeEl.getAttribute("data-action");
+
+      if (keyChar) {
+        typedBuffer += keyChar;
+      } else if (action) {
+        if (action.startsWith("PRED_")) {
+          const idx = parseInt(action.split("_")[1], 10);
+          const chosen = currentPredictions[idx];
+          if (chosen && chosen !== "—") replaceLastPartialWord(chosen);
+        } else if (action === "BACKSPACE") {
+          typedBuffer = typedBuffer.slice(0, -1);
+        } else if (action === "SPACE") {
+          if (!typedBuffer.endsWith(" ")) typedBuffer += " ";
+        } else if (action === "SPEAK" || action === "ENTER") {
+          injectTypedText();
+        }
+      }
+
+      typedTextEl.textContent = typedBuffer;
+      updatePredictions();
+    }
+
+    function renderCalibrationState(data) {
+      if (!data.active) {
+        isCalibrating = false;
+        calibOverlayEl.classList.add("hidden");
+        return;
+      }
+      isCalibrating = true;
+      calibOverlayEl.classList.remove("hidden");
+
+      const pt = data.pt || 0;
+      calibTitleEl.textContent = `HANDS-FREE 9-POINT CALIBRATION (${pt + 1}/9)`;
+      calibProgressEl.textContent = data.recording ? `Capturing ${data.samples}/${data.needed}... Keep looking at red dot!` : "";
+      calibErrorEl.textContent = data.msg || "";
+
+      document.querySelectorAll(".calib-dot").forEach((dotEl) => {
+        const idx = parseInt(dotEl.getAttribute("data-pt"), 10);
+        dotEl.className = "calib-dot";
+        if (idx < pt) dotEl.classList.add("done");
+        else if (idx === pt) dotEl.classList.add(data.recording ? "recording" : "current");
+      });
+    }
+
+    calibBtnEl.addEventListener("click", () => {
+      if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        activeSocket.send(JSON.stringify({ command: "calibrate" }));
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (isCalibrating) return;
+      if (e.key === "ArrowUp") { e.preventDefault(); moveSelection("UP"); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); moveSelection("DOWN"); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); moveSelection("LEFT"); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); moveSelection("RIGHT"); }
+      else if (e.key === "Enter") { e.preventDefault(); triggerActiveKey(); }
+    });
+
+    document.querySelectorAll(".key-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        if (isCalibrating) return;
+        activeRow = parseInt(el.getAttribute("data-row"), 10);
+        activeCol = parseInt(el.getAttribute("data-col"), 10);
+        renderActiveSelection();
+        triggerActiveKey();
+      });
+    });
+
+    function connectJoystickSocket() {
+      const ws = new WebSocket(WS_URL);
+      activeSocket = ws;
+
+      ws.onopen = () => {
+        wsIndicatorEl.className = "status-dot online";
+        wsTextEl.textContent = "AuraOS Master Engine Connected (Left Wink = Select | Right Wink = Inject & Return)";
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "state") {
+            const dir = data.direction;
+            if (dir === "UP") moveSelection("UP");
+            else if (dir === "DOWN") moveSelection("DOWN");
+            else if (dir === "LEFT") moveSelection("LEFT");
+            else if (dir === "RIGHT") moveSelection("RIGHT");
+
+            if (data.direction === "CENTER") {
+              springAnchorEl.classList.remove("return-needed");
+            } else {
+              springAnchorEl.classList.add("return-needed");
+            }
+          } else if (data.type === "gesture") {
+            if (data.action === "LEFT_WINK") {
+              triggerActiveKey();
+            } else if (data.action === "RIGHT_WINK") {
+              injectTypedText();
+            } else if (data.action === "BACK") {
+              typedBuffer = typedBuffer.slice(0, -1);
+              typedTextEl.textContent = typedBuffer;
+              updatePredictions();
+            }
+          }
+        } catch (err) {}
+      };
+
+      ws.onclose = () => {
+        wsIndicatorEl.className = "status-dot offline";
+        wsTextEl.textContent = "Reconnecting to AuraOS Master Engine...";
+        setTimeout(connectJoystickSocket, 1500);
+      };
+    }
+
+    updatePredictions();
+    renderActiveSelection();
+    connectJoystickSocket();
+  </script>
+</body>
+</html>

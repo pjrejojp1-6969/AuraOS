@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>AuraOS Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    :root {
+      --sky-deep: #0B58B8;
+      --sky-mid: #1E7CE4;
+      --sky-bright: #58ACF8;
+      --sky-horizon: #9AD2FC;
+      --lime-neon: #DFF954;
+      --lime-neon-hover: #E9FF6B;
+      --ink-navy: #0B192C;
+      --card-white: #FFFFFF;
+      --card-dark: #10151C;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .hidden-file-input {
+      display: none !important;
+    }
+
+    body {
+      background: var(--sky-mid);
+      color: #ffffff;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =========================================================================
+       SCREEN 1: 3-BLINK PARTICLE INTRO & OUTWARD DISPERSION OVERLAY
+       ========================================================================= */
+    .sleep-intro-screen {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      color: #ffffff;
+      z-index: 500;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: background 0.85s ease, opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    body.mode-sleeping .sleep-intro-screen {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      background: #000000;
+    }
+
+    body.mode-dispersing .sleep-intro-screen {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0);
+    }
+
+    .intro-ui-chrome {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px 34px 22px;
+      transition: opacity 0.3s ease;
+    }
+
+    body.mode-dispersing .intro-ui-chrome,
+    body:not(.mode-sleeping) .intro-ui-chrome {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .cafeteria-header-wrap {
+      position: relative;
+      z-index: 2;
+      width: min(1120px, 88vw);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .cafeteria-nav {
+      width: 100%;
+      height: 48px;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 0 14px 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      font-size: 1.15rem;
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    .nav-brand .bracket {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .nav-center-links {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #d4d4d4;
+    }
+
+    .nav-link-item.active-link {
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    .nav-link-divider {
+      color: #525252;
+    }
+
+    .nav-link-status {
+      color: #a3a3a3;
+    }
+
+    .blink-pips {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 2px;
+    }
+
+    .blink-pip {
+      width: 14px;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.16);
+      transition: background 0.25s ease;
+    }
+
+    .blink-pip.filled {
+      background: #39e56c;
+    }
+
+    .nav-right-rpm {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-outline-login {
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #f5f5f5;
+      font-size: 0.76rem;
+      padding: 5px 14px;
+      border-radius: 999px;
+    }
+
+    .pill-mint-rpm {
+      background: #39e56c;
+      color: #06180b;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 5px 15px;
+      border-radius: 999px;
+      min-width: 68px;
+      text-align: center;
+    }
+
+    .wave-svg-icon {
+      color: #d4d4d4;
+      margin-left: 6px;
+    }
+
+    .intro-subtitle-wrap {
+      margin-top: auto;
+      margin-bottom: 88px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .intro-subtitle {
+      font-size: 1.18rem;
+      color: #f5f5f5;
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.32em;
+      min-height: 1.5em;
+    }
+
+    .subtitle-word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(3px);
+      transition: opacity 0.55s ease, transform 0.55s ease, filter 0.55s ease;
+    }
+
+    .subtitle-word.visible {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .intro-footer {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      font-family: monospace;
+      font-size: 0.68rem;
+      color: #8c8c8c;
+    }
+
+    .intro-timer {
+      color: #a3a3a3;
+    }
+
+    .intro-to-start {
+      position: absolute;
+      left: 50%;
+      bottom: 2px;
+      transform: translateX(-50%);
+      letter-spacing: 0.14em;
+      color: #cccccc;
+      text-transform: uppercase;
+      overflow: hidden;
+      height: 1.2em;
+    }
+
+    .slot-ticker span {
+      display: inline-block;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    .intro-bottom-right {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      font-family: "Inter", sans-serif;
+    }
+
+    .intro-sound-card {
+      background: #161616;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 14px 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sound-card-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    .sound-card-text strong {
+      color: #f5f5f5;
+      font-weight: 500;
+    }
+
+    .sound-card-text span {
+      color: #8c8c8c;
+    }
+
+    .ok-badge {
+      background: #ffffff;
+      color: #0a0a0a;
+      border: none;
+      font-weight: 600;
+      font-size: 0.72rem;
+      padding: 5px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .sound-status-pill {
+      background: #161616;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-family: monospace;
+      font-size: 0.65rem;
+      color: #a3a3a3;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* =========================================================================
+       SCREEN 2: "AELINE" SUNNY SKY & CLOUDS
+       ========================================================================= */
+    .portal-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      color-scheme: only light;
+      background: linear-gradient(180deg, #0A58B8 0%, #1B78E0 36%, #4CA2F4 72%, #87C7FA 100%);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .portal-wrapper.has-custom-bg::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(6, 20, 44, 0.42) 0%, rgba(6, 20, 44, 0.16) 50%, rgba(6, 20, 44, 0.48) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .sky-clouds-backdrop {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .sun-glow {
+      position: absolute;
+      top: -15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(135, 206, 250, 0.08) 48%, transparent 72%);
+    }
+
+    .cloud-bank {
+      position: absolute;
+      left: -10%;
+      width: 120%;
+      border-radius: 50%;
+    }
+
+    .cloud-bank-back {
+      bottom: -60px;
+      height: 340px;
+      background: radial-gradient(circle at 12% 45%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 26%),
+                  radial-gradient(circle at 28% 60%, rgba(235, 246, 255, 0.78) 0%, rgba(235, 246, 255, 0) 28%),
+                  radial-gradient(circle at 50% 68%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 32%),
+                  radial-gradient(circle at 74% 58%, rgba(240, 249, 255, 0.82) 0%, rgba(240, 249, 255, 0) 28%),
+                  radial-gradient(circle at 90% 42%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 26%);
+      filter: blur(12px);
+      animation: cloud-drift-slow 38s ease-in-out infinite alternate;
+    }
+
+    .cloud-bank-mid {
+      bottom: -95px;
+      height: 360px;
+      background: radial-gradient(circle at 6% 35%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0) 22%),
+                  radial-gradient(circle at 22% 52%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 24%),
+                  radial-gradient(circle at 38% 68%, rgba(215, 238, 255, 0.88) 0%, rgba(215, 238, 255, 0) 26%),
+                  radial-gradient(circle at 62% 65%, rgba(225, 242, 255, 0.88) 0%, rgba(225, 242, 255, 0) 26%),
+                  radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0) 24%),
+                  radial-gradient(circle at 94% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 22%);
+      filter: blur(6px);
+      animation: cloud-drift-mid 28s ease-in-out infinite alternate;
+    }
+
+    .cloud-bank-front {
+      bottom: -130px;
+      height: 300px;
+      background: radial-gradient(ellipse at 18% 60%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0) 35%),
+                  radial-gradient(ellipse at 50% 75%, rgba(195, 228, 254, 0.85) 0%, rgba(195, 228, 254, 0) 40%),
+                  radial-gradient(ellipse at 84% 58%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0) 35%);
+      filter: blur(10px);
+    }
+
+    @keyframes cloud-drift-slow {
+      from { transform: translateX(-1.5%); }
+      to { transform: translateX(1.5%); }
+    }
+
+    @keyframes cloud-drift-mid {
+      from { transform: translateX(1.2%); }
+      to { transform: translateX(-1.2%); }
+    }
+
+    .aeline-navbar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px 6px;
+      gap: 16px;
+    }
+
+    .aeline-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .aeline-brand-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .aeline-nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .aeline-nav-item {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.88);
+      white-space: nowrap;
+    }
+
+    .aeline-nav-item strong {
+      color: var(--lime-neon);
+      font-weight: 800;
+    }
+
+    .aeline-rpm-pill {
+      background: var(--lime-neon);
+      color: var(--ink-navy);
+      padding: 10px 22px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(11, 25, 44, 0.18);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .aeline-rpm-pill.sos-alert {
+      background: #ff3b3b;
+      color: #ffffff;
+      animation: pulse-sos 0.7s infinite alternate;
+    }
+
+    @keyframes pulse-sos {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    .rpm-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #16a34a;
+    }
+
+    .aeline-hero {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .aeline-hero-title {
+      font-size: clamp(2.0rem, 3.4vw, 3.05rem);
+      font-weight: 600;
+      line-height: 1.1;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .aeline-hero-sub {
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 680px;
+      margin: 0 auto 14px;
+    }
+
+    .aeline-hero-sub strong {
+      color: var(--lime-neon);
+      font-weight: 700;
+    }
+
+    .aeline-cta-row {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .aeline-btn-glass {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(9, 45, 94, 0.54);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 12px 18px;
+      border-radius: 999px;
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+    }
+
+    .aeline-btn-lime {
+      background: var(--lime-neon);
+      color: var(--ink-navy);
+      border: none;
+      font-family: inherit;
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 6px 8px 6px 20px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .lime-arrow-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--ink-navy);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .remove-banner {
+      position: relative;
+      z-index: 15;
+      margin: 4px auto;
+      padding: 8px 22px;
+      background: rgba(185, 28, 28, 0.92);
+      border: 1.5px solid #fecaca;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 0.84rem;
+    }
+
+    /* =========================================================================
+       3D CURVED HORIZONTAL CAROUSEL STAGE
+       ========================================================================= */
+    .carousel-stage {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1500px;
+      overflow: visible;
+    }
+
+    .curved-carousel-track {
+      position: relative;
+      width: 100%;
+      height: 290px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+    }
+
+    .portal-card {
+      position: absolute;
+      width: 235px;
+      height: 235px;
+      border-radius: 22px;
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.52s cubic-bezier(0.2, 0.85, 0.25, 1), opacity 0.52s ease, box-shadow 0.4s ease, border-color 0.3s ease;
+    }
+
+    .portal-card.theme-white {
+      background: #ffffff;
+      color: var(--ink-navy);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 18px 40px rgba(9, 48, 98, 0.18);
+    }
+
+    .portal-card.theme-dark {
+      background: #10161F;
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 18px 40px rgba(9, 48, 98, 0.28);
+    }
+
+    .portal-card.theme-glass {
+      background: linear-gradient(145deg, rgba(64, 158, 255, 0.82), rgba(20, 108, 218, 0.88));
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.42);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 40px rgba(9, 48, 98, 0.22);
+    }
+
+    .portal-card.active-card {
+      border: 4px solid var(--lime-neon) !important;
+      box-shadow: 0 24px 55px rgba(7, 36, 76, 0.38), 0 0 32px rgba(223, 249, 84, 0.65) !important;
+    }
+
+    .card-top-tag {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      opacity: 0.68;
+    }
+
+    .active-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--lime-neon);
+      box-shadow: 0 0 8px var(--lime-neon);
+    }
+
+    .card-medallion {
+      width: 88px;
+      height: 88px;
+      border-radius: 20px;
+      background: rgba(14, 116, 232, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .card-logo-img {
+      width: 62px;
+      height: 62px;
+      object-fit: contain;
+    }
+
+    .portal-card .card-title {
+      font-size: 1.18rem;
+      font-weight: 800;
+    }
+
+    .portal-card .card-desc {
+      font-size: 0.74rem;
+      opacity: 0.75;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .portal-card.clicked-flash {
+      background: var(--lime-neon) !important;
+      color: var(--ink-navy) !important;
+    }
+
+    .portal-card.delete-candidate {
+      border-color: #ef4444 !important;
+    }
+
+    .delete-badge {
+      position: absolute;
+      top: -10px;
+      right: 12px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+
+    /* =========================================================================
+       ORIGINAL YELLOW/ORANGE SPRING-RETURN CENTER POINT
+       ========================================================================= */
+    .center-spring-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 3px solid #fde047;
+      box-shadow: 0 0 18px #facc15, 0 0 32px rgba(245, 158, 11, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: none;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .center-spring-dot.return-needed {
+      background: #ff5722;
+      border-color: #ffffff;
+      box-shadow: 0 0 28px #ff5722, 0 0 44px rgba(255, 87, 34, 0.95);
+      transform: translate(-50%, -50%) scale(1.28);
+    }
+
+    .inner-white-core {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    .aeline-footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding-bottom: 16px;
+    }
+
+    .aeline-footer-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0E294B;
+      margin-bottom: 4px;
+    }
+
+    .portal-wrapper.has-custom-bg .aeline-footer-text {
+      color: #ffffff;
+    }
+
+    .aeline-stars {
+      display: inline-flex;
+      gap: 6px;
+      color: #F59E0B;
+      font-size: 1rem;
+    }
+
+    /* Modal and Calibration styling */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 28, 58, 0.72);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 600;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      color: var(--ink-navy);
+      border-radius: 24px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 24px 60px rgba(7, 28, 58, 0.45);
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .form-field input[type="text"] {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 0.96rem;
+      color: var(--ink-navy);
+      outline: none;
+    }
+
+    .logo-upload-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .upload-btn-label {
+      background: var(--sky-mid);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .none-logo-btn {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1.5px solid #cbd5e1;
+    }
+
+    .none-logo-btn.active-choice {
+      background: var(--ink-navy);
+      color: var(--lime-neon);
+      border-color: var(--ink-navy);
+    }
+
+    .logo-preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+    }
+
+    #logo-preview-img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 4px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .btn-secondary, .btn-primary {
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--ink-navy);
+    }
+
+    .btn-primary {
+      background: var(--lime-neon);
+      color: var(--ink-navy);
+    }
+
+    .calib-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 10, 16, 0.96);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calib-dot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #2b3346;
+      border: 2px solid #45526e;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 3-pixel bright red center bullseye inside every calibration dot */
+    .calib-dot::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff0000;
+      box-shadow: 0 0 4px #ff0000;
+    }
+
+    .calib-dot.done {
+      width: 18px;
+      height: 18px;
+      background: #46a046;
+      border-color: #6ee66e;
+    }
+
+    .calib-dot.current {
+      width: 48px;
+      height: 48px;
+      background: #ff8c00;
+      border: 4px solid #191919;
+      box-shadow: 0 0 28px #ff8c00;
+    }
+
+    .calib-dot.recording {
+      width: 52px;
+      height: 52px;
+      background: #78ff00;
+      border: 4px solid #191919;
+      box-shadow: 0 0 34px #78ff00;
+    }
+
+    .calib-hud-card {
+      margin-top: 220px;
+      background: #0c0c0c;
+      border: 2px solid #2b3b4e;
+      border-radius: 16px;
+      padding: 22px 36px;
+      text-align: center;
+      max-width: 680px;
+    }
+
+    .calib-hud-card h2 {
+      color: #b4ff00;
+      font-size: 1.55rem;
+      margin-bottom: 8px;
+    }
+
+    .calib-progress {
+      margin-top: 10px;
+      color: #78ff00 !important;
+      font-weight: 700;
+      font-size: 1.2rem !important;
+    }
+
+    .calib-error {
+      margin-top: 6px;
+      color: #ff5252 !important;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body class="mode-sleeping">
+
+  <!-- =========================================================================
+       SCREEN 1: 3-BLINK AWAKE PARTICLE INTRO SCREEN
+       ========================================================================= -->
+  <section id="sleep-intro-screen" class="sleep-intro-screen">
+    <canvas id="particle-canvas" aria-label="AuraOS By Jayan Rejo"></canvas>
+
+    <div id="intro-ui-chrome" class="intro-ui-chrome">
+      <div class="cafeteria-header-wrap">
+        <header class="cafeteria-nav">
+          <div class="nav-brand"><span class="bracket">[</span>AuraOS<span class="bracket">]</span></div>
+
+          <nav class="nav-center-links" aria-label="Wake status">
+            <span class="nav-link-item active-link">3 blink awake</span>
+            <span class="nav-link-divider">/</span>
+            <span id="intro-awake-text" class="nav-link-status">0 of 3 blinks</span>
+            <div class="blink-pips" aria-hidden="true">
+              <span class="blink-pip" data-pip="1"></span>
+              <span class="blink-pip" data-pip="2"></span>
+              <span class="blink-pip" data-pip="3"></span>
+            </div>
+          </nav>
+
+          <div class="nav-right-rpm">
+            <span class="pill-outline-login">heart rate</span>
+            <div id="intro-rpm-pill" class="pill-mint-rpm">-- rpm</div>
+            <svg class="wave-svg-icon" width="18" height="14" viewBox="0 0 18 14" fill="none">
+              <path d="M1 3C2.8 1 4.5 1 6.3 3C8.1 5 9.9 5 11.7 3C13.5 1 15.2 1 17 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M1 7C2.8 5 4.5 5 6.3 7C8.1 9 9.9 9 11.7 7C13.5 5 15.2 5 17 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M1 11C2.8 9 4.5 9 6.3 11C8.1 13 9.9 13 11.7 11C13.5 9 15.2 9 17 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </header>
+      </div>
+
+      <div class="intro-subtitle-wrap">
+        <p id="intro-subtitle" class="intro-subtitle" aria-label="web operating system for motor disabled individuals"></p>
+      </div>
+
+      <footer class="intro-footer">
+        <div id="intro-timer" class="intro-timer">00:00:00:00</div>
+
+        <div class="intro-to-start">
+          <div class="slot-ticker">
+            <span id="intro-start-prompt">TO START</span>
+          </div>
+        </div>
+
+        <div class="intro-bottom-right">
+          <div class="intro-sound-card">
+            <div class="sound-card-text">
+              <strong>experience is best with eye tracking on.</strong>
+              <span>blink 3 times any time to take over.</span>
+            </div>
+            <button id="manual-wake-btn" class="ok-badge" type="button" title="Click or perform 3 slow blinks to wake">ok</button>
+          </div>
+          <div class="sound-status-pill">
+            <span class="sound-icon">◈</span> LIVE SENSOR
+          </div>
+        </div>
+      </footer>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       SCREEN 2: SUNNY SKY & CLOUDS + 3D CURVED HORIZONTAL CAROUSEL
+       ========================================================================= -->
+  <div id="portal-wrapper" class="portal-wrapper">
+    <div id="sky-clouds-backdrop" class="sky-clouds-backdrop" aria-hidden="true">
+      <div class="sun-glow"></div>
+      <div class="cloud-bank cloud-bank-back"></div>
+      <div class="cloud-bank cloud-bank-mid"></div>
+      <div class="cloud-bank cloud-bank-front"></div>
+    </div>
+
+    <!-- Top Navbar (All Gestures Horizontally + 3 Blink Awake at Center) -->
+    <header class="aeline-navbar">
+      <div class="aeline-brand">
+        <div class="aeline-logo-mark">
+          <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+            <path d="M12 2L2 18H7.5L12 10.2L16.5 18H22L12 2Z" fill="#FFFFFF"/>
+            <circle cx="12" cy="15.5" r="2.2" fill="#DFF954"/>
+          </svg>
+        </div>
+        <span class="aeline-brand-name">AuraOS</span>
+      </div>
+
+      <nav class="aeline-nav-links" aria-label="System telemetry">
+        <span class="aeline-nav-item">JOYSTICK: <strong id="joystick-state-text">SPRING CENTERED</strong></span>
+        <span class="aeline-nav-item">L-WINK: <strong>ZOOM / OPEN</strong></span>
+        <span class="aeline-nav-item">R-WINK: <strong>CLICK</strong></span>
+        <span class="aeline-nav-item">3 BLINK AWAKE: <strong id="wake-blinks-text">0 / 3</strong></span>
+        <span class="aeline-nav-item">5-10S: <strong>BACK</strong></span>
+        <span class="aeline-nav-item">11-19S: <strong>CALIBRATE</strong></span>
+        <span class="aeline-nav-item">20-30S: <strong>HOME</strong></span>
+        <span class="aeline-nav-item hidden" id="surveillance-sub">PORTAL ARMED</span>
+      </nav>
+
+      <div id="rppg-card" class="aeline-rpm-pill">
+        <span class="rpm-pulse-dot"></span>
+        <span class="rpm-pill-label">HEART RATE:</span>
+        <strong id="bpm-value">-- BPM</strong>
+      </div>
+    </header>
+
+    <!-- Delete Mode Notification Banner -->
+    <div id="remove-mode-banner" class="remove-banner hidden">
+      🗑️ <strong>REMOVE APP MODE ACTIVE:</strong> Look LEFT / RIGHT to center any custom website card and Left Wink to delete it.
+    </div>
+
+    <!-- Hero Section + Controls -->
+    <section class="aeline-hero">
+      <h1 class="aeline-hero-title">
+        Navigate your world with<br />
+        AI and eye tracking
+      </h1>
+      <p class="aeline-hero-sub">
+        Look at the <strong>Center Dot</strong> until it turns <strong>GREEN</strong> • Look <strong>LEFT / RIGHT</strong> to rotate deck •
+        <strong>LEFT WINK</strong> to open the zoomed center card
+      </p>
+
+      <div class="aeline-cta-row">
+        <button id="recalib-top-btn" class="aeline-btn-glass" type="button">
+          🎯 PRESS 'C' OR CLICK: CALIBRATE
+        </button>
+
+        <label id="bg-upload-btn" for="bg-image-input" class="aeline-btn-glass" title="Upload a custom landscape background image">
+          🖼️ BACKGROUND
+        </label>
+        <input type="file" id="bg-image-input" accept="image/*" class="hidden-file-input" />
+
+        <button id="bg-reset-btn" class="aeline-btn-glass hidden" type="button" title="Restore default sunny sky and clouds">
+          ↺ DEFAULT SKY
+        </button>
+
+        <button id="open-active-btn" class="aeline-btn-lime" type="button">
+          <span id="active-card-cta-text">LEFT WINK TO OPEN</span>
+          <span class="lime-arrow-circle">↗</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3D Curved Horizontal Carousel Stage + Center Spring Dot -->
+    <main class="carousel-stage">
+      <!-- Original Yellow/Orange Spring-Return Center Dot -->
+      <div id="center-spring-anchor" class="center-spring-dot armed" title="Look here to re-arm joystick spring">
+        <div class="inner-white-core"></div>
+      </div>
+
+      <div id="portal-grid" class="curved-carousel-track">
+        <!-- Cards dynamically positioned in 3D arc by dashboard.js -->
+      </div>
+    </main>
+
+    <footer class="aeline-footer">
+      <p id="carousel-counter-text" class="aeline-footer-text">Selected Card 1 of 6 • Center Dot Turns GREEN When Focused</p>
+      <div class="aeline-stars" id="carousel-dots-row">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ADD WEBSITE / APP MODAL -->
+  <div id="add-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Add Website / App to AuraOS</h3>
+      <p class="modal-sub">Enter the website details below. Upload a logo picture or choose "None" to display the website name only.</p>
+      <form id="add-website-form">
+        <label class="form-field">
+          <span>Website Name</span>
+          <input type="text" id="site-name-input" placeholder="e.g. Netflix, Spotify, Wikipedia" required autocomplete="off" />
+        </label>
+
+        <label class="form-field">
+          <span>Website Link (URL)</span>
+          <input type="text" id="site-url-input" placeholder="e.g. https://www.netflix.com" required autocomplete="off" />
+        </label>
+
+        <div class="form-field">
+          <span>Website Logo Picture (Optional)</span>
+          <div class="logo-upload-row">
+            <label class="upload-btn-label" for="site-logo-input">
+              📷 Upload Logo Picture
+            </label>
+            <input type="file" id="site-logo-input" accept="image/*" class="hidden-file-input" />
+            <button type="button" id="clear-logo-btn" class="none-logo-btn active-choice">
+              None (Show Name Only)
+            </button>
+          </div>
+          <div id="logo-preview-wrap" class="logo-preview-wrap hidden">
+            <img id="logo-preview-img" src="" alt="Logo Preview" />
+            <span id="logo-preview-name">Logo selected</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-modal-btn" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Add to Carousel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- HANDS-FREE 9-POINT BLINK CALIBRATION OVERLAY (Unified HUD_HEIGHT_PX = 0 Center Geometry) -->
+  <div id="calib-overlay" class="calib-overlay hidden">
+    <div class="calib-dot" data-pt="0" style="left: 28px; top: 28px;"></div>
+    <div class="calib-dot" data-pt="1" style="left: 50%; top: 28px;"></div>
+    <div class="calib-dot" data-pt="2" style="left: calc(100% - 28px); top: 28px;"></div>
+
+    <div class="calib-dot" data-pt="3" style="left: 28px; top: 50%;"></div>
+    <div class="calib-dot" data-pt="4" style="left: 50%; top: 50%;"></div>
+    <div class="calib-dot" data-pt="5" style="left: calc(100% - 28px); top: 50%;"></div>
+
+    <div class="calib-dot" data-pt="6" style="left: 28px; top: calc(100% - 28px);"></div>
+    <div class="calib-dot" data-pt="7" style="left: 50%; top: calc(100% - 28px);"></div>
+    <div class="calib-dot" data-pt="8" style="left: calc(100% - 28px); top: calc(100% - 28px);"></div>
+
+    <div class="calib-hud-card">
+      <h2 id="calib-title">HANDS-FREE 9-POINT CALIBRATION (1/9)</h2>
+      <p id="calib-sub">Look directly at the red center dot, then <strong>BLINK ONCE</strong> (or Left Wink) to capture</p>
+      <p id="calib-progress" class="calib-progress"></p>
+      <p id="calib-error" class="calib-error"></p>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * AuraOS Eye-Tracking Application Portal Frontend (dashboard.js)
+     * - 2027 Starfield Particle Intro ("AuraOS" particles + crisp "By Jayan Rejo" with zero stray dots underneath)
+     * - Exact 4-point diamond star twinkle flare on the "o" of "By Jayan Rejo"
+     * - Full outward particle dispersion animation when 3 blinks (or "ok") wakes the portal
+     * - 3D Curved Horizontal Carousel with 4 Default Websites + Add & Remove Cards
+     * - WebSocket connection on ws://localhost:5006 with original Yellow/Orange Spring Dot & Calibration
+     */
+
+    const WS_URL = "ws://localhost:5006";
+    const STORAGE_KEY = "auraos_portal_websites_v2";
+    const BG_STORAGE_KEY = "auraos_custom_bg_v1";
+
+    let activeSocket = null;
+    let isCalibrating = false;
+    let removeModeActive = false;
+    let activeIndex = 0;
+
+    let portalViewState = "SLEEPING";
+    let dispersionStartTime = 0;
+    const DISPERSION_DURATION_S = 1.35;
+    let pendingCalibData = null;
+
+    // Built-in Crisp SVG Logos
+    const BUILTIN_LOGOS = {
+      youtube:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 84"><rect width="120" height="84" rx="20" fill="#FF0000"/><polygon points="48,22 48,62 84,42" fill="#FFFFFF"/></svg>`
+        ),
+      google:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M90 51.1c0-3.1-.3-6.1-.8-9H50v17h22.5c-1 5.2-3.9 9.6-8.3 12.6v10.5h13.4C85.5 75 90 64.1 90 51.1z" fill="#4285F4"/><path d="M50 92c11.2 0 20.7-3.7 27.6-10.1L64.2 71.4c-3.7 2.5-8.5 4-14.2 4-10.9 0-20.2-7.4-23.5-17.3H12.7v10.8C19.6 82.6 33.7 92 50 92z" fill="#34A853"/><path d="M26.5 58.1c-.8-2.5-1.3-5.2-1.3-8.1s.5-5.6 1.3-8.1V31.1H12.7C9.7 37 8 43.3 8 50s1.7 13 4.7 18.9l13.8-10.8z" fill="#FBBC05"/><path d="M50 24.6c6.1 0 11.6 2.1 15.9 6.2l11.9-11.9C70.6 12.2 61.2 8 50 8 33.7 8 19.6 17.4 12.7 31.1l13.8 10.8C29.8 32 39.1 24.6 50 24.6z" fill="#EA4335"/></svg>`
+        ),
+      wiki:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#F8FAFC"/><text x="50" y="62" font-family="Georgia,serif" font-weight="bold" font-size="52" fill="#0F172A" text-anchor="middle">W</text></svg>`
+        ),
+      bbc:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 60"><rect x="2" y="10" width="42" height="40" rx="6" fill="#0B192C"/><rect x="54" y="10" width="42" height="40" rx="6" fill="#0B192C"/><rect x="106" y="10" width="42" height="40" rx="6" fill="#0B192C"/><text x="23" y="38" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" text-anchor="middle">B</text><text x="75" y="38" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" text-anchor="middle">B</text><text x="127" y="38" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" text-anchor="middle">C</text></svg>`
+        ),
+      add:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="#DFF954"/><path d="M50 28v44M28 50h44" stroke="#0B192C" stroke-width="10" stroke-linecap="round"/></svg>`
+        ),
+      remove:
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="26" y="30" width="48" height="54" rx="8" fill="#EF4444"/><path d="M20 24h60M38 16h24" stroke="#EF4444" stroke-width="8" stroke-linecap="round"/><path d="M40 42v28M60 42v28" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/></svg>`
+        )
+    };
+
+    const DEFAULT_WEBSITES = [
+      {
+        id: "site-youtube",
+        title: "YouTube",
+        url: "https://www.youtube.com",
+        logo: BUILTIN_LOGOS.youtube,
+        desc: "Watch videos with 9-Grid Eye Zoom & Click"
+      },
+      {
+        id: "site-google",
+        title: "Google Search",
+        url: "https://www.google.com",
+        logo: BUILTIN_LOGOS.google,
+        desc: "Search the web with Eye Keypad & 9-Grid"
+      },
+      {
+        id: "site-wiki",
+        title: "Wikipedia",
+        url: "https://www.wikipedia.org",
+        logo: BUILTIN_LOGOS.wiki,
+        desc: "Explore articles & encyclopedia hands-free"
+      },
+      {
+        id: "site-bbc",
+        title: "BBC Live News",
+        url: "https://www.bbc.com/news",
+        logo: BUILTIN_LOGOS.bbc,
+        desc: "Read headlines hands-free with 9-Grid Zoom"
+      }
+    ];
+
+    let websites = loadWebsites();
+    let uploadedLogoDataUrl = "";
+    let previousOffsets = new Map();
+
+    // DOM Elements
+    const portalWrapperEl = document.getElementById("portal-wrapper");
+    const skyCloudsBackdropEl = document.getElementById("sky-clouds-backdrop");
+    const bgImageInput = document.getElementById("bg-image-input");
+    const bgResetBtn = document.getElementById("bg-reset-btn");
+
+    const portalGridEl = document.getElementById("portal-grid");
+    const surveillanceSubEl = document.getElementById("surveillance-sub");
+    const joystickStateTextEl = document.getElementById("joystick-state-text");
+    const wakeBlinksTextEl = document.getElementById("wake-blinks-text");
+    const bpmValueEl = document.getElementById("bpm-value");
+    const rppgCardEl = document.getElementById("rppg-card");
+    const springAnchorEl = document.getElementById("center-spring-anchor");
+    const removeBannerEl = document.getElementById("remove-mode-banner");
+    const activeCardCtaTextEl = document.getElementById("active-card-cta-text");
+    const carouselCounterTextEl = document.getElementById("carousel-counter-text");
+    const openActiveBtn = document.getElementById("open-active-btn");
+    const recalibTopBtn = document.getElementById("recalib-top-btn");
+
+    const introAwakeTextEl = document.getElementById("intro-awake-text");
+    const introRpmPillEl = document.getElementById("intro-rpm-pill");
+    const introSubtitleEl = document.getElementById("intro-subtitle");
+    const introTimerEl = document.getElementById("intro-timer");
+    const introStartPromptEl = document.getElementById("intro-start-prompt");
+    const manualWakeBtn = document.getElementById("manual-wake-btn");
+
+    const addModalEl = document.getElementById("add-modal");
+    const addWebsiteForm = document.getElementById("add-website-form");
+    const siteNameInput = document.getElementById("site-name-input");
+    const siteUrlInput = document.getElementById("site-url-input");
+    const siteLogoInput = document.getElementById("site-logo-input");
+    const clearLogoBtn = document.getElementById("clear-logo-btn");
+    const logoPreviewWrap = document.getElementById("logo-preview-wrap");
+    const logoPreviewImg = document.getElementById("logo-preview-img");
+    const logoPreviewName = document.getElementById("logo-preview-name");
+    const cancelModalBtn = document.getElementById("cancel-modal-btn");
+
+    const calibOverlayEl = document.getElementById("calib-overlay");
+    const calibTitleEl = document.getElementById("calib-title");
+    const calibProgressEl = document.getElementById("calib-progress");
+    const calibErrorEl = document.getElementById("calib-error");
+
+    // =========================================================================
+    // IMAGE COMPRESSION & CUSTOM LANDSCAPE BACKGROUND MANAGER
+    // =========================================================================
+    function compressImageFile(file, maxW, maxH, mimeType, quality, callback) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxW || h > maxH) {
+            const ratio = Math.min(maxW / w, maxH / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL(mimeType, quality));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applySavedBackground() {
+      try {
+        const savedBg = localStorage.getItem(BG_STORAGE_KEY);
+        if (savedBg) {
+          portalWrapperEl.style.backgroundImage = `url("${savedBg}")`;
+          portalWrapperEl.classList.add("has-custom-bg");
+          skyCloudsBackdropEl.classList.add("hidden");
+          bgResetBtn.classList.remove("hidden");
+          return;
+        }
+      } catch (e) {}
+
+      portalWrapperEl.style.backgroundImage = "";
+      portalWrapperEl.classList.remove("has-custom-bg");
+      skyCloudsBackdropEl.classList.remove("hidden");
+      bgResetBtn.classList.add("hidden");
+    }
+
+    bgImageInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 1920, 1080, "image/jpeg", 0.84, (compressedDataUrl) => {
+        try {
+          localStorage.setItem(BG_STORAGE_KEY, compressedDataUrl);
+        } catch (err) {}
+        applySavedBackground();
+      });
+      bgImageInput.value = "";
+    });
+
+    bgResetBtn.addEventListener("click", () => {
+      try {
+        localStorage.removeItem(BG_STORAGE_KEY);
+      } catch (e) {}
+      applySavedBackground();
+    });
+
+    applySavedBackground();
+
+    // =========================================================================
+    // 2027 STIPPLE PARTICLE ENGINE ("AuraOS" + Crisp "By Jayan Rejo" under "OS")
+    // - Zero stray white dots under "By Jayan Rejo"
+    // - Exact 4-point diamond star twinkle on the "o" of "By Jayan Rejo"
+    // - Full outward particle dispersion on 3-blink wake
+    // =========================================================================
+    const particleCanvas = document.getElementById("particle-canvas");
+    const pCtx = particleCanvas.getContext("2d");
+    let particles = [];
+    let ambientStars = [];
+    let introStartTime = performance.now();
+    let subtitleWordsTriggered = false;
+    let oTwinklePos = { x: 0, y: 0 };
+    let creditLayout = { text: "By Jayan Rejo", x: 0, y: 0, fontSize: 18 };
+    let lastCanvasW = 0;
+    let lastCanvasH = 0;
+
+    const SUBTITLE_WORDS = [
+      "web",
+      "operating",
+      "system",
+      "for",
+      "motor",
+      "disabled",
+      "individuals"
+    ];
+
+    function setupSubtitleSpans() {
+      introSubtitleEl.innerHTML = "";
+      SUBTITLE_WORDS.forEach((word) => {
+        const span = document.createElement("span");
+        span.className = "subtitle-word";
+        span.textContent = word;
+        introSubtitleEl.appendChild(span);
+      });
+    }
+
+    function easeInOutQuart(t) {
+      return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function stippleClusterNoise(x, y) {
+      return (
+        Math.sin(x * 0.19 + Math.cos(y * 0.17) * 2.2) *
+        Math.cos(y * 0.21 - Math.sin(x * 0.15) * 2.2)
+      );
+    }
+
+    function initParticleSwarm(preserveTimeline = false) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      if (preserveTimeline && Math.abs(w - lastCanvasW) < 4 && Math.abs(h - lastCanvasH) < 4) {
+        return;
+      }
+      lastCanvasW = w;
+      lastCanvasH = h;
+
+      particleCanvas.width = w * dpr;
+      particleCanvas.height = h * dpr;
+      pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const oCtx = off.getContext("2d");
+
+      // Draw ONLY "AuraOS" onto offscreen canvas for particle sampling
+      const fontSize = Math.min(w * 0.215, 275);
+      oCtx.fillStyle = "#ffffff";
+      oCtx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`;
+      oCtx.textAlign = "center";
+      oCtx.textBaseline = "middle";
+      const textY = h * 0.445;
+      const cx = w / 2;
+      oCtx.fillText("AuraOS", cx, textY);
+
+      const auraMetrics = oCtx.measureText("AuraOS");
+      const auraWidth = auraMetrics.width;
+
+      // Measure "By Jayan Rejo" layout & exact "o" twinkle position
+      const creditText = "By Jayan Rejo";
+      const creditFontSize = Math.max(13, Math.round(fontSize * 0.082));
+      oCtx.font = `600 ${creditFontSize}px -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`;
+      oCtx.textAlign = "left";
+      oCtx.textBaseline = "middle";
+
+      const creditTotalW = oCtx.measureText(creditText).width;
+      const auraRightEdge = cx + auraWidth * 0.485;
+      const creditStartX = auraRightEdge - creditTotalW;
+      const creditY = textY + fontSize * 0.42;
+
+      creditLayout = {
+        text: creditText,
+        x: creditStartX,
+        y: creditY,
+        fontSize: creditFontSize
+      };
+
+      // Compute exact pixel coordinate of the letter "o" at the end of "By Jayan Rejo"
+      const widthBeforeO = oCtx.measureText("By Jayan Rej").width;
+      const widthOfO = oCtx.measureText("o").width;
+      oTwinklePos = {
+        x: creditStartX + widthBeforeO + widthOfO * 0.55,
+        y: creditY - creditFontSize * 0.22
+      };
+
+      const imgData = oCtx.getImageData(0, 0, w, h).data;
+      particles = [];
+
+      const cy = textY;
+      const step = 2;
+
+      for (let y = step; y < h - step; y += step) {
+        for (let x = step; x < w - step; x += step) {
+          const idx = (y * w + x) * 4 + 3;
+          const alpha = imgData[idx];
+          if (alpha > 120) {
+            const nVal = stippleClusterNoise(x, y);
+            const keepProb = nVal > -0.35 ? 0.54 : 0.14;
+
+            if (Math.random() < keepProb) {
+              const sx = (Math.random() - 0.5) * w * 1.45 + cx;
+              const sy = (Math.random() - 0.5) * h * 1.45 + cy;
+
+              const dx0 = sx - cx;
+              const dy0 = sy - cy;
+              const dist = Math.hypot(dx0, dy0);
+              const maxR = Math.hypot(w, h) * 0.75;
+              const normDist = Math.min(1, dist / maxR);
+
+              const angle = Math.atan2(dy0, dx0) + (Math.random() - 0.5) * 0.7;
+              const cpx = cx + Math.cos(angle) * dist * 0.45;
+              const cpy = cy + Math.sin(angle) * dist * 0.45;
+
+              const jitter = 2.2;
+              const tx = x + (Math.random() - 0.5) * jitter;
+              const ty = y + (Math.random() - 0.5) * jitter;
+
+              const delay = 0.75 + normDist * 0.42 + Math.random() * 0.2;
+              const duration = 1.2 + (1 - normDist) * 0.35 + Math.random() * 0.2;
+
+              const outAngle =
+                Math.atan2(ty - cy, tx - cx) + (Math.random() - 0.5) * 0.55;
+              const outDist = Math.max(w, h) * (0.55 + Math.random() * 0.65);
+
+              particles.push({
+                sx,
+                sy,
+                cpx,
+                cpy,
+                tx,
+                ty,
+                ox: tx + Math.cos(outAngle) * outDist,
+                oy: ty + Math.sin(outAngle) * outDist,
+                dispDelay: Math.random() * 0.14,
+                delay,
+                duration,
+                r: Math.random() * 0.65 + 0.75,
+                baseAlpha: Math.random() * 0.22 + 0.78,
+                twinkleSpeed: Math.random() * 2.5 + 1.2,
+                phase: Math.random() * Math.PI * 2
+              });
+            }
+          }
+        }
+      }
+
+      ambientStars = Array.from({ length: 140 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 0.95 + 0.4,
+        alpha: Math.random() * 0.45 + 0.15,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2
+      }));
+
+      if (!preserveTimeline) {
+        setupSubtitleSpans();
+        subtitleWordsTriggered = false;
+        introStartTime = performance.now();
+      }
+    }
+
+    /**
+     * Draws the exact white 4-point diamond star twinkle flare on top of the "o" in "By Jayan Rejo".
+     */
+    function drawOTwinkleStar(ctx, x, y, progress) {
+      if (progress <= 0 || progress >= 1) return;
+
+      const intensity = Math.sin(progress * Math.PI);
+      const scale = 0.32 + intensity * 0.85;
+      const rot = (progress - 0.5) * 0.45;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 26 * scale);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${0.98 * intensity})`);
+      grad.addColorStop(0.35, `rgba(255, 255, 255, ${0.46 * intensity})`);
+      grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 26 * scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      const longSpike = 19 * scale;
+      const shortSpike = 2.6 * scale;
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, intensity * 1.18)})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -longSpike);
+      ctx.quadraticCurveTo(shortSpike, -shortSpike, longSpike, 0);
+      ctx.quadraticCurveTo(shortSpike, shortSpike, 0, longSpike);
+      ctx.quadraticCurveTo(-shortSpike, shortSpike, -longSpike, 0);
+      ctx.quadraticCurveTo(-shortSpike, -shortSpike, 0, -longSpike);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function triggerSubtitleWordReveal() {
+      const spans = introSubtitleEl.querySelectorAll(".subtitle-word");
+      spans.forEach((span, idx) => {
+        setTimeout(() => {
+          span.classList.add("visible");
+        }, idx * 95);
+      });
+    }
+
+    function startWakeDispersion() {
+      if (portalViewState !== "SLEEPING") return;
+      portalViewState = "DISPERSING";
+      dispersionStartTime = performance.now();
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const cx = w / 2;
+      const cy = h * 0.445;
+      for (let i = 0; i < 650; i++) {
+        const tx = Math.random() * w;
+        const ty = Math.random() * h;
+        const angle = Math.atan2(ty - cy, tx - cx) + (Math.random() - 0.5) * 0.5;
+        const dist = Math.max(w, h) * (0.45 + Math.random() * 0.65);
+        particles.push({
+          sx: tx,
+          sy: ty,
+          cpx: tx,
+          cpy: ty,
+          tx,
+          ty,
+          ox: tx + Math.cos(angle) * dist,
+          oy: ty + Math.sin(angle) * dist,
+          dispDelay: Math.random() * 0.12,
+          delay: 0,
+          duration: 0.1,
+          r: Math.random() * 1.1 + 0.6,
+          baseAlpha: Math.random() * 0.5 + 0.5,
+          twinkleSpeed: 2,
+          phase: 0
+        });
+      }
+
+      document.body.classList.remove("mode-sleeping");
+      document.body.classList.add("mode-dispersing");
+    }
+
+    function animateParticles(now) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      if (portalViewState === "SLEEPING") {
+        pCtx.fillStyle = "#000000";
+        pCtx.fillRect(0, 0, w, h);
+
+        const elapsedS = (now - introStartTime) / 1000;
+
+        pCtx.fillStyle = "#ffffff";
+        for (const s of ambientStars) {
+          s.x = (s.x + s.vx + w) % w;
+          s.y = (s.y + s.vy + h) % h;
+          pCtx.globalAlpha = s.alpha;
+          pCtx.beginPath();
+          pCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          pCtx.fill();
+        }
+
+        if (elapsedS > 0.35) {
+          const swarmFadeIn = Math.min(1, (elapsedS - 0.35) / 0.65);
+
+          for (const p of particles) {
+            let rawT = (elapsedS - p.delay) / p.duration;
+            let px, py;
+
+            if (rawT <= 0) {
+              px = p.sx + Math.sin(elapsedS * 1.2 + p.phase) * 3.5;
+              py = p.sy + Math.cos(elapsedS * 1.2 + p.phase) * 3.5;
+            } else if (rawT < 1) {
+              const t = easeInOutQuart(rawT);
+              const inv = 1 - t;
+              px = inv * inv * p.sx + 2 * inv * t * p.cpx + t * t * p.tx;
+              py = inv * inv * p.sy + 2 * inv * t * p.cpy + t * t * p.ty;
+            } else {
+              px = p.tx + Math.sin(now * 0.0018 + p.phase) * 0.18;
+              py = p.ty + Math.cos(now * 0.0018 + p.phase) * 0.18;
+            }
+
+            const twinkle =
+              0.92 + 0.08 * Math.sin(elapsedS * p.twinkleSpeed + p.phase);
+            pCtx.globalAlpha = p.baseAlpha * swarmFadeIn * twinkle;
+            pCtx.beginPath();
+            pCtx.arc(px, py, p.r, 0, Math.PI * 2);
+            pCtx.fill();
+          }
+        }
+
+        // Crisp "By Jayan Rejo" under "OS" once particles settle at 2.15s
+        if (elapsedS >= 2.15) {
+          const creditAlpha = Math.min(0.92, (elapsedS - 2.15) / 0.45);
+          pCtx.save();
+          pCtx.globalAlpha = creditAlpha;
+          pCtx.fillStyle = "#f5f5f5";
+          pCtx.font = `600 ${creditLayout.fontSize}px -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`;
+          pCtx.textAlign = "left";
+          pCtx.textBaseline = "middle";
+          pCtx.fillText(creditLayout.text, creditLayout.x, creditLayout.y);
+          pCtx.restore();
+        }
+
+        pCtx.globalAlpha = 1.0;
+
+        // Exact 4-point white twinkle star shines on top of the "o" in "By Jayan Rejo"
+        if (elapsedS >= 2.45 && elapsedS <= 3.75) {
+          const twinkleProg = (elapsedS - 2.45) / 1.3;
+          drawOTwinkleStar(pCtx, oTwinklePos.x, oTwinklePos.y, twinkleProg);
+        }
+
+        if (elapsedS >= 2.45 && !subtitleWordsTriggered) {
+          subtitleWordsTriggered = true;
+          triggerSubtitleWordReveal();
+        }
+
+        const mins = String(Math.floor(elapsedS / 60)).padStart(2, "0");
+        const secs = String(Math.floor(elapsedS % 60)).padStart(2, "0");
+        const ms = String(Math.floor((elapsedS % 1) * 100)).padStart(2, "0");
+        introTimerEl.textContent = `00:${mins}:${secs}:${ms}`;
+      } else if (portalViewState === "DISPERSING") {
+        pCtx.clearRect(0, 0, w, h);
+        const dispElapsed = (now - dispersionStartTime) / 1000;
+        const overallProgress = dispElapsed / DISPERSION_DURATION_S;
+
+        if (overallProgress >= 1) {
+          portalViewState = "AWAKE";
+          document.body.classList.remove("mode-dispersing");
+          if (pendingCalibData) {
+            renderCalibrationState(pendingCalibData);
+            pendingCalibData = null;
+          }
+        } else {
+          const bgAlpha = Math.max(0, 1 - overallProgress * 1.45);
+          if (bgAlpha > 0) {
+            pCtx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
+            pCtx.fillRect(0, 0, w, h);
+          }
+
+          pCtx.fillStyle = "#ffffff";
+          for (const p of particles) {
+            const localT = Math.max(
+              0,
+              Math.min(1, (dispElapsed - p.dispDelay) / (DISPERSION_DURATION_S - 0.15))
+            );
+            const eased = easeOutCubic(localT);
+            const px = p.tx + (p.ox - p.tx) * eased;
+            const py = p.ty + (p.oy - p.ty) * eased;
+            const alpha = p.baseAlpha * (1 - localT);
+
+            if (alpha > 0.02) {
+              pCtx.globalAlpha = alpha;
+              pCtx.beginPath();
+              pCtx.arc(px, py, p.r * (1 + eased * 0.4), 0, Math.PI * 2);
+              pCtx.fill();
+            }
+          }
+          pCtx.globalAlpha = 1.0;
+        }
+      }
+
+      requestAnimationFrame(animateParticles);
+    }
+
+    setInterval(() => {
+      if (portalViewState === "SLEEPING" && introStartPromptEl) {
+        introStartPromptEl.style.opacity = "0";
+        introStartPromptEl.style.transform = "translateY(-8px)";
+        setTimeout(() => {
+          introStartPromptEl.textContent =
+            introStartPromptEl.textContent === "TO START"
+              ? "BLINK 3 TIMES"
+              : "TO START";
+          introStartPromptEl.style.transform = "translateY(8px)";
+          requestAnimationFrame(() => {
+            introStartPromptEl.style.opacity = "1";
+            introStartPromptEl.style.transform = "translateY(0)";
+          });
+        }, 260);
+      }
+    }, 3200);
+
+    window.addEventListener("resize", () => initParticleSwarm(true));
+    initParticleSwarm(false);
+    requestAnimationFrame(animateParticles);
+
+    // =========================================================================
+    // 3D CURVED HORIZONTAL CAROUSEL LOGIC
+    // =========================================================================
+    function loadWebsites() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+      return [...DEFAULT_WEBSITES];
+    }
+
+    function saveWebsites() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(websites));
+      } catch (e) {}
+    }
+
+    function getAllPortalItems() {
+      const siteItems = websites.map((s) => ({
+        ...s,
+        type: "WEBSITE"
+      }));
+
+      siteItems.push({
+        id: "action-add-site",
+        type: "ADD_SITE",
+        title: "Add Website / App",
+        logo: BUILTIN_LOGOS.add,
+        desc: "Add a custom website tile to AuraOS"
+      });
+
+      siteItems.push({
+        id: "action-remove-site",
+        type: "REMOVE_MODE",
+        title: removeModeActive ? "Exit Remove Mode" : "Remove App Mode",
+        logo: BUILTIN_LOGOS.remove,
+        desc: removeModeActive
+          ? "Click here to cancel delete mode"
+          : "Toggle delete mode to remove a custom tile"
+      });
+
+      return siteItems;
+    }
+
+    function getCircularOffset(idx, centerIdx, total) {
+      let diff = idx - centerIdx;
+      const half = Math.floor(total / 2);
+      if (diff > half) diff -= total;
+      if (diff < -half) diff += total;
+      return diff;
+    }
+
+    function updateCarouselPositions() {
+      const items = getAllPortalItems();
+      const total = items.length;
+      if (total === 0) return;
+
+      activeIndex = ((activeIndex % total) + total) % total;
+
+      const cards = portalGridEl.querySelectorAll(".portal-card");
+      if (cards.length !== total) {
+        renderPortalGrid();
+        return;
+      }
+
+      cards.forEach((card, idx) => {
+        const offset = getCircularOffset(idx, activeIndex, total);
+        const absOff = Math.abs(offset);
+        const prevOff = previousOffsets.get(idx);
+
+        if (prevOff !== undefined && Math.abs(offset - prevOff) > 2) {
+          card.style.transition = "none";
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              card.style.transition = "";
+            });
+          });
+        }
+        previousOffsets.set(idx, offset);
+
+        card.classList.toggle("active-card", offset === 0);
+
+        const pillDotHolder = card.querySelector(".card-top-dot-slot");
+        if (pillDotHolder) {
+          pillDotHolder.innerHTML = offset === 0 ? '<span class="active-pill-dot"></span>' : "";
+        }
+
+        const spacingX = 238;
+        const translateX = offset * spacingX - Math.sign(offset) * Math.pow(absOff, 1.45) * 18;
+        const translateY = Math.pow(absOff, 1.65) * 12 - (offset === 0 ? 10 : 0);
+        const translateZ = offset === 0 ? 75 : -absOff * 95;
+        const rotateY = -offset * 16;
+        const rotateZ = offset * 1.8;
+        const scale = offset === 0 ? 1.15 : Math.max(0.68, 0.96 - absOff * 0.08);
+        const opacity = absOff >= 3 ? 0 : Math.max(0.35, 1 - absOff * 0.16);
+
+        card.style.transform = `translate3d(${translateX}px, ${translateY}px, ${translateZ}px) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`;
+        card.style.opacity = String(opacity);
+        card.style.zIndex = String(20 - absOff);
+        card.style.pointerEvents = absOff >= 3 ? "none" : "auto";
+      });
+
+      const activeItem = items[activeIndex];
+      if (activeItem) {
+        activeCardCtaTextEl.textContent = `OPEN ${activeItem.title.toUpperCase()}`;
+        carouselCounterTextEl.textContent = `Center Zoomed: ${activeItem.title} (${activeIndex + 1} of ${total}) • Center Dot Turns GREEN When Focused`;
+      }
+
+      removeBannerEl.classList.toggle("hidden", !removeModeActive);
+    }
+
+    function renderPortalGrid() {
+      const items = getAllPortalItems();
+      const total = items.length;
+      if (total === 0) return;
+
+      activeIndex = ((activeIndex % total) + total) % total;
+      portalGridEl.innerHTML = "";
+      previousOffsets.clear();
+
+      const themes = ["theme-white", "theme-dark", "theme-glass"];
+
+      items.forEach((item, idx) => {
+        const card = document.createElement("div");
+        const themeClass = themes[idx % themes.length];
+        card.className = `portal-card ${themeClass}`;
+
+        if (removeModeActive && item.type === "WEBSITE") {
+          card.classList.add("delete-candidate");
+        }
+        card.setAttribute("data-index", idx);
+
+        const badgeHtml =
+          removeModeActive && item.type === "WEBSITE"
+            ? `<span class="delete-badge">CLICK TO REMOVE</span>`
+            : "";
+
+        const tagNum = String(idx + 1).padStart(2, "0");
+        const topTagHtml = `
+          <div class="card-top-tag">
+            <span>${tagNum} / AURA</span>
+            <span class="card-top-dot-slot"></span>
+          </div>
+        `;
+
+        if (item.logo) {
+          card.innerHTML = `
+            ${badgeHtml}
+            ${topTagHtml}
+            <div class="card-medallion">
+              <img class="card-logo-img" src="${item.logo}" alt="${item.title}" />
+            </div>
+            <div>
+              <div class="card-title">${item.title}</div>
+              <div class="card-desc">${item.desc || ""}</div>
+            </div>
+          `;
+        } else {
+          card.innerHTML = `
+            ${badgeHtml}
+            ${topTagHtml}
+            <div class="card-name-only-medallion">
+              <span class="card-name-only-text">${item.title}</span>
+            </div>
+            <div class="card-desc">${item.desc || ""}</div>
+          `;
+        }
+
+        card.addEventListener("click", () => {
+          if (activeIndex === idx) {
+            triggerSelectedBox();
+          } else {
+            activeIndex = idx;
+            updateCarouselPositions();
+          }
+        });
+
+        portalGridEl.appendChild(card);
+      });
+
+      updateCarouselPositions();
+    }
+
+    function moveSelection(dir) {
+      if (portalViewState !== "AWAKE" || isCalibrating || !addModalEl.classList.contains("hidden")) return;
+
+      const items = getAllPortalItems();
+      const total = items.length;
+      if (total === 0) return;
+
+      if (dir === "RIGHT" || dir === "DOWN") {
+        activeIndex = (activeIndex + 1) % total;
+      } else if (dir === "LEFT" || dir === "UP") {
+        activeIndex = (activeIndex - 1 + total) % total;
+      }
+
+      updateCarouselPositions();
+    }
+
+    function launchWebsiteAndStartZoomGrid(rawUrl) {
+      let cleanUrl = (rawUrl || "").trim();
+      if (!cleanUrl) return;
+      if (!/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = "https://" + cleanUrl;
+      }
+
+      if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        activeSocket.send(JSON.stringify({ type: "open_url", url: cleanUrl }));
+      } else {
+        window.open(cleanUrl, "_blank");
+      }
+    }
+
+    function triggerSelectedBox() {
+      if (portalViewState !== "AWAKE" || isCalibrating || !addModalEl.classList.contains("hidden")) return;
+
+      const items = getAllPortalItems();
+      const selected = items[activeIndex];
+      if (!selected) return;
+
+      const cardEl = portalGridEl.querySelector(`.portal-card[data-index="${activeIndex}"]`);
+      if (cardEl) {
+        cardEl.classList.add("clicked-flash");
+        setTimeout(() => cardEl.classList.remove("clicked-flash"), 220);
+      }
+
+      if (selected.type === "ADD_SITE") {
+        removeModeActive = false;
+        siteNameInput.value = "";
+        siteUrlInput.value = "";
+        siteLogoInput.value = "";
+        uploadedLogoDataUrl = "";
+        logoPreviewWrap.classList.add("hidden");
+        clearLogoBtn.classList.add("active-choice");
+        addModalEl.classList.remove("hidden");
+        setTimeout(() => siteNameInput.focus(), 50);
+        updateCarouselPositions();
+        return;
+      }
+
+      if (selected.type === "REMOVE_MODE") {
+        removeModeActive = !removeModeActive;
+        renderPortalGrid();
+        return;
+      }
+
+      if (selected.type === "WEBSITE") {
+        if (removeModeActive) {
+          websites = websites.filter((w) => w.id !== selected.id);
+          saveWebsites();
+          removeModeActive = false;
+          renderPortalGrid();
+        } else {
+          launchWebsiteAndStartZoomGrid(selected.url);
+        }
+      }
+    }
+
+    openActiveBtn.addEventListener("click", triggerSelectedBox);
+    recalibTopBtn.addEventListener("click", () => {
+      if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        activeSocket.send(JSON.stringify({ type: "start_calib" }));
+      }
+    });
+
+    siteLogoInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      compressImageFile(file, 256, 256, "image/png", 0.9, (compressedLogo) => {
+        uploadedLogoDataUrl = compressedLogo;
+        logoPreviewImg.src = uploadedLogoDataUrl;
+        logoPreviewName.textContent = file.name;
+        logoPreviewWrap.classList.remove("hidden");
+        clearLogoBtn.classList.remove("active-choice");
+      });
+    });
+
+    clearLogoBtn.addEventListener("click", () => {
+      siteLogoInput.value = "";
+      uploadedLogoDataUrl = "";
+      logoPreviewWrap.classList.add("hidden");
+      clearLogoBtn.classList.add("active-choice");
+    });
+
+    addWebsiteForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = siteNameInput.value.trim();
+      let url = siteUrlInput.value.trim();
+      if (!name || !url) return;
+
+      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+
+      websites.push({
+        id: "site-" + Date.now(),
+        title: name,
+        url: url,
+        logo: uploadedLogoDataUrl || "",
+        desc: `Open ${name} (${url.replace(/^https?:\/\//i, "")})`
+      });
+
+      saveWebsites();
+      addModalEl.classList.add("hidden");
+      activeIndex = websites.length - 1;
+      renderPortalGrid();
+    });
+
+    cancelModalBtn.addEventListener("click", () => addModalEl.classList.add("hidden"));
+
+    manualWakeBtn.addEventListener("click", () => {
+      startWakeDispersion();
+      if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        activeSocket.send(JSON.stringify({ type: "force_wake" }));
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (!addModalEl.classList.contains("hidden")) {
+        if (e.key === "Escape") addModalEl.classList.add("hidden");
+        return;
+      }
+      if (isCalibrating) return;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSelection("RIGHT");
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSelection("LEFT");
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        triggerSelectedBox();
+      }
+    });
+
+    // =========================================================================
+    // CALIBRATION & VISION ENGINE TELEMETRY HANDLERS (ORIGINAL MECHANISM)
+    // =========================================================================
+    function renderCalibrationState(data) {
+      if (portalViewState === "DISPERSING" && data.active) {
+        pendingCalibData = data;
+        return;
+      }
+
+      if (!data.active) {
+        isCalibrating = false;
+        calibOverlayEl.classList.add("hidden");
+        return;
+      }
+      isCalibrating = true;
+      calibOverlayEl.classList.remove("hidden");
+
+      const pt = data.pt || 0;
+      calibTitleEl.textContent = `HANDS-FREE 9-POINT CALIBRATION (${pt + 1}/9)`;
+      calibProgressEl.textContent = data.recording
+        ? `Capturing ${data.samples}/${data.needed}... Keep looking at dot!`
+        : data.blink_primed
+        ? "Blink detected — open your eyes on the dot to capture!"
+        : "";
+      calibErrorEl.textContent = data.msg || "";
+
+      document.querySelectorAll(".calib-dot").forEach((dotEl) => {
+        const idx = parseInt(dotEl.getAttribute("data-pt"), 10);
+        dotEl.className = "calib-dot";
+        if (idx < pt) dotEl.classList.add("done");
+        else if (idx === pt) dotEl.classList.add(data.recording ? "recording" : "current");
+      });
+    }
+
+    function updateTelemetryUI(data) {
+      const blinks = data.blink_progress || 0;
+      wakeBlinksTextEl.textContent = `${blinks} / 3`;
+      introAwakeTextEl.textContent = `${blinks} of 3 blinks`;
+
+      document.querySelectorAll(".blink-pip").forEach((pipEl) => {
+        const idx = parseInt(pipEl.getAttribute("data-pip"), 10);
+        pipEl.classList.toggle("filled", idx <= blinks);
+      });
+
+      const hasBpm = data.bpm && data.bpm > 0;
+      bpmValueEl.textContent = hasBpm ? `${data.bpm.toFixed(0)} BPM` : "-- BPM";
+      introRpmPillEl.textContent = hasBpm ? `${data.bpm.toFixed(0)} rpm` : "-- rpm";
+      rppgCardEl.classList.toggle("sos-alert", Boolean(data.sos));
+
+      if (!data.awake) {
+        if (portalViewState !== "SLEEPING") {
+          portalViewState = "SLEEPING";
+          isCalibrating = false;
+          calibOverlayEl.classList.add("hidden");
+          document.body.classList.remove("mode-dispersing");
+          document.body.classList.add("mode-sleeping");
+          initParticleSwarm(false);
+        }
+      } else {
+        if (portalViewState === "SLEEPING") {
+          startWakeDispersion();
+        }
+        if (surveillanceSubEl) {
+          surveillanceSubEl.textContent = data.status || "PORTAL ARMED";
+        }
+      }
+
+      // Original Yellow/Orange Spring-Return Center Dot behavior
+      if (data.armed) {
+        joystickStateTextEl.textContent =
+          data.dir && data.dir !== "CENTER" ? `LOOKING ${data.dir}` : "SPRING CENTERED";
+        springAnchorEl.classList.remove("return-needed");
+      } else {
+        joystickStateTextEl.textContent = "RETURN TO CENTER";
+        springAnchorEl.classList.add("return-needed");
+      }
+    }
+
+    function connectDashboardSocket() {
+      const ws = new WebSocket(WS_URL);
+      activeSocket = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "calib_state") renderCalibrationState(data);
+          else if (data.type === "move") moveSelection(data.dir);
+          else if (data.type === "action" && data.action === "LEFT_WINK_SELECT") triggerSelectedBox();
+          else if (data.type === "telemetry") updateTelemetryUI(data);
+        } catch (err) {}
+      };
+
+      ws.onclose = () => {
+        setTimeout(connectDashboardSocket, 1200);
+      };
+    }
+
+    renderPortalGrid();
+    connectDashboardSocket();
+  </script>
+</body>
+</html>
