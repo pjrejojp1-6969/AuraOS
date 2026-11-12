@@ -424,8 +424,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 32px 6px;
-      gap: 16px;
+      padding: 16px clamp(18px, 2.2vw, 36px) 6px;
+      gap: 12px;
     }
 
     .aeline-brand {
@@ -446,15 +446,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 15px;
+      gap: clamp(8px, 1.1vw, 16px);
       flex-wrap: nowrap;
       white-space: nowrap;
     }
 
     .aeline-nav-item {
-      font-size: 0.68rem;
+      font-size: clamp(0.58rem, 0.68vw, 0.72rem);
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.88);
       white-space: nowrap;
@@ -468,12 +468,12 @@
     .aeline-rpm-pill {
       background: var(--lime-neon);
       color: var(--ink-navy);
-      padding: 10px 22px;
+      padding: 10px 20px;
       border-radius: 999px;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 700;
       box-shadow: 0 8px 24px rgba(11, 25, 44, 0.18);
       flex-shrink: 0;
@@ -733,12 +733,12 @@
     }
 
     /* =========================================================================
-       ORIGINAL YELLOW/ORANGE SPRING-RETURN CENTER POINT
+       UNIFIED TRUE-CENTER SPRING-RETURN DOT (50vw, 50vh — MATCHES CALIB, KB, ZOOMGRID)
        ========================================================================= */
     .center-spring-dot {
-      position: absolute;
-      left: 50%;
-      top: 50%;
+      position: fixed;
+      left: 50vw;
+      top: 50vh;
       transform: translate(-50%, -50%);
       width: 28px;
       height: 28px;
@@ -749,9 +749,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 40;
+      z-index: 100;
       pointer-events: none;
-      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, opacity 0.3s ease;
+    }
+
+    body.mode-sleeping .center-spring-dot,
+    body.mode-dispersing .center-spring-dot {
+      opacity: 0;
+      visibility: hidden;
     }
 
     .center-spring-dot.return-needed {
@@ -934,7 +940,7 @@
       justify-content: center;
     }
 
-    /* 3-pixel bright red center bullseye inside every calibration dot */
+    /* Solid bright red center bullseye inside every calibration dot */
     .calib-dot::after {
       content: "";
       width: 6px;
@@ -1140,13 +1146,8 @@
       </div>
     </section>
 
-    <!-- 3D Curved Horizontal Carousel Stage + Center Spring Dot -->
+    <!-- 3D Curved Horizontal Carousel Stage -->
     <main class="carousel-stage">
-      <!-- Original Yellow/Orange Spring-Return Center Dot -->
-      <div id="center-spring-anchor" class="center-spring-dot armed" title="Look here to re-arm joystick spring">
-        <div class="inner-white-core"></div>
-      </div>
-
       <div id="portal-grid" class="curved-carousel-track">
         <!-- Cards dynamically positioned in 3D arc by dashboard.js -->
       </div>
@@ -1158,6 +1159,11 @@
         <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
       </div>
     </footer>
+  </div>
+
+  <!-- UNIFIED TRUE-CENTER SPRING-RETURN DOT (50vw, 50vh — Exact same pixel as Calibration Pt 5, Keyboard & ZoomGrid) -->
+  <div id="center-spring-anchor" class="center-spring-dot armed" title="Look here to re-arm joystick spring">
+    <div class="inner-white-core"></div>
   </div>
 
   <!-- ADD WEBSITE / APP MODAL -->
@@ -1230,12 +1236,13 @@
      * - Exact 4-point diamond star twinkle flare on the "o" of "By Jayan Rejo"
      * - Full outward particle dispersion animation when 3 blinks (or "ok") wakes the portal
      * - 3D Curved Horizontal Carousel with 4 Default Websites + Add & Remove Cards
-     * - WebSocket connection on ws://localhost:5006 with original Yellow/Orange Spring Dot & Calibration
+     * - WebSocket connection on ws://localhost:5006 with True-Center (50vw, 50vh) Spring Dot & Calibration
      */
 
     const WS_URL = "ws://localhost:5006";
     const STORAGE_KEY = "auraos_portal_websites_v2";
     const BG_STORAGE_KEY = "auraos_custom_bg_v1";
+    const AWAKE_SESSION_KEY = "auraos_awake_session";
 
     let activeSocket = null;
     let isCalibrating = false;
@@ -1246,6 +1253,12 @@
     let dispersionStartTime = 0;
     const DISPERSION_DURATION_S = 1.35;
     let pendingCalibData = null;
+
+    // If returning Home from an external website/keyboard while already awake, skip sleep screen
+    if (sessionStorage.getItem(AWAKE_SESSION_KEY) === "1") {
+      portalViewState = "AWAKE";
+      document.body.classList.remove("mode-sleeping", "mode-dispersing");
+    }
 
     // Built-in Crisp SVG Logos
     const BUILTIN_LOGOS = {
@@ -1426,9 +1439,6 @@
 
     // =========================================================================
     // 2027 STIPPLE PARTICLE ENGINE ("AuraOS" + Crisp "By Jayan Rejo" under "OS")
-    // - Zero stray white dots under "By Jayan Rejo"
-    // - Exact 4-point diamond star twinkle on the "o" of "By Jayan Rejo"
-    // - Full outward particle dispersion on 3-blink wake
     // =========================================================================
     const particleCanvas = document.getElementById("particle-canvas");
     const pCtx = particleCanvas.getContext("2d");
@@ -1496,7 +1506,6 @@
       off.height = h;
       const oCtx = off.getContext("2d");
 
-      // Draw ONLY "AuraOS" onto offscreen canvas for particle sampling
       const fontSize = Math.min(w * 0.215, 275);
       oCtx.fillStyle = "#ffffff";
       oCtx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`;
@@ -1509,7 +1518,6 @@
       const auraMetrics = oCtx.measureText("AuraOS");
       const auraWidth = auraMetrics.width;
 
-      // Measure "By Jayan Rejo" layout & exact "o" twinkle position
       const creditText = "By Jayan Rejo";
       const creditFontSize = Math.max(13, Math.round(fontSize * 0.082));
       oCtx.font = `600 ${creditFontSize}px -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif`;
@@ -1528,7 +1536,6 @@
         fontSize: creditFontSize
       };
 
-      // Compute exact pixel coordinate of the letter "o" at the end of "By Jayan Rejo"
       const widthBeforeO = oCtx.measureText("By Jayan Rej").width;
       const widthOfO = oCtx.measureText("o").width;
       oTwinklePos = {
@@ -1613,9 +1620,6 @@
       }
     }
 
-    /**
-     * Draws the exact white 4-point diamond star twinkle flare on top of the "o" in "By Jayan Rejo".
-     */
     function drawOTwinkleStar(ctx, x, y, progress) {
       if (progress <= 0 || progress >= 1) return;
 
@@ -1664,6 +1668,7 @@
       if (portalViewState !== "SLEEPING") return;
       portalViewState = "DISPERSING";
       dispersionStartTime = performance.now();
+      sessionStorage.setItem(AWAKE_SESSION_KEY, "1");
 
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -1746,7 +1751,6 @@
           }
         }
 
-        // Crisp "By Jayan Rejo" under "OS" once particles settle at 2.15s
         if (elapsedS >= 2.15) {
           const creditAlpha = Math.min(0.92, (elapsedS - 2.15) / 0.45);
           pCtx.save();
@@ -1761,7 +1765,6 @@
 
         pCtx.globalAlpha = 1.0;
 
-        // Exact 4-point white twinkle star shines on top of the "o" in "By Jayan Rejo"
         if (elapsedS >= 2.45 && elapsedS <= 3.75) {
           const twinkleProg = (elapsedS - 2.45) / 1.3;
           drawOTwinkleStar(pCtx, oTwinklePos.x, oTwinklePos.y, twinkleProg);
@@ -2214,6 +2217,11 @@
     }
 
     function updateTelemetryUI(data) {
+      // Unstuck guarantee: close calibration overlay as soon as master_engine reports calibrated = true
+      if (data.calibrated && isCalibrating) {
+        renderCalibrationState({ active: false });
+      }
+
       const blinks = data.blink_progress || 0;
       wakeBlinksTextEl.textContent = `${blinks} / 3`;
       introAwakeTextEl.textContent = `${blinks} of 3 blinks`;
@@ -2229,6 +2237,7 @@
       rppgCardEl.classList.toggle("sos-alert", Boolean(data.sos));
 
       if (!data.awake) {
+        sessionStorage.setItem(AWAKE_SESSION_KEY, "0");
         if (portalViewState !== "SLEEPING") {
           portalViewState = "SLEEPING";
           isCalibrating = false;
@@ -2238,6 +2247,7 @@
           initParticleSwarm(false);
         }
       } else {
+        sessionStorage.setItem(AWAKE_SESSION_KEY, "1");
         if (portalViewState === "SLEEPING") {
           startWakeDispersion();
         }
@@ -2246,7 +2256,6 @@
         }
       }
 
-      // Original Yellow/Orange Spring-Return Center Dot behavior
       if (data.armed) {
         joystickStateTextEl.textContent =
           data.dir && data.dir !== "CENTER" ? `LOOKING ${data.dir}` : "SPRING CENTERED";
@@ -2264,10 +2273,24 @@
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "calib_state") renderCalibrationState(data);
-          else if (data.type === "move") moveSelection(data.dir);
-          else if (data.type === "action" && data.action === "LEFT_WINK_SELECT") triggerSelectedBox();
-          else if (data.type === "telemetry") updateTelemetryUI(data);
+          if (data.type === "calib_state") {
+            renderCalibrationState(data);
+          } else if (data.type === "move") {
+            moveSelection(data.dir);
+          } else if (data.type === "action" && data.action === "LEFT_WINK_SELECT") {
+            triggerSelectedBox();
+          } else if (data.type === "gesture" && data.action === "BACK") {
+            if (!addModalEl.classList.contains("hidden")) {
+              addModalEl.classList.add("hidden");
+            } else if (removeModeActive) {
+              removeModeActive = false;
+              renderPortalGrid();
+            } else {
+              moveSelection("LEFT");
+            }
+          } else if (data.type === "telemetry") {
+            updateTelemetryUI(data);
+          }
         } catch (err) {}
       };
 
