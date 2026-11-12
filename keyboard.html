@@ -31,7 +31,6 @@
       gap: 12px;
     }
 
-    /* Header & Status */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -99,7 +98,6 @@
       color: #80f2ff;
     }
 
-    /* Composer Display Box */
     .composer-box {
       position: relative;
       background: #0b0f17;
@@ -152,7 +150,6 @@
       opacity: 1;
     }
 
-    /* Predictive Text Bar */
     .prediction-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -168,7 +165,6 @@
       font-weight: 700 !important;
     }
 
-    /* Main Keyboard Stage */
     .keyboard-stage {
       flex: 1;
       display: flex;
@@ -232,7 +228,6 @@
       background: #182030;
     }
 
-    /* CENTER SPRING-RETURN DOT (Unified True Center HUD_HEIGHT_PX = 0) */
     .center-spring-dot {
       position: fixed;
       left: 50vw;
@@ -266,7 +261,6 @@
       background: #ffffff;
     }
 
-    /* 9-POINT CALIBRATION OVERLAY */
     .calib-overlay {
       position: fixed;
       inset: 0;
@@ -359,7 +353,6 @@
 </head>
 <body>
   <div class="keyboard-app">
-    <!-- Top Status & Legend -->
     <header class="top-bar">
       <div class="brand-status">
         <span id="ws-indicator" class="status-dot offline"></span>
@@ -368,12 +361,12 @@
       <div class="gesture-legend">
         <span class="badge">👁️ Look: Move</span>
         <span class="badge yellow-badge">🟡 Center Dot: Re-Arm Spring</span>
-        <span class="badge select-badge">😉 Left Wink: Select</span>
+        <span class="badge select-badge">😉 Left Wink: Select Key</span>
+        <span class="badge select-badge">😜 Right Wink / Enter: Speak &amp; Inject</span>
         <button id="calib-btn" class="badge calib-btn" title="Run Hands-Free 9-point blink calibration">🎯 Press 'C': Calibrate</button>
       </div>
     </header>
 
-    <!-- Typed Text Display Box -->
     <section class="composer-box" id="composer-box">
       <div class="typed-output" id="typed-output">
         <span id="typed-text"></span><span class="cursor">|</span>
@@ -381,7 +374,6 @@
       <div class="tts-banner" id="tts-banner">🔊 Speaking aloud...</div>
     </section>
 
-    <!-- Smart Word Prediction Bar -->
     <section class="prediction-bar" aria-label="Smart Word Suggestions">
       <div class="key-item pred-slot" data-row="0" data-col="0" data-action="PRED_0">—</div>
       <div class="key-item pred-slot" data-row="0" data-col="1" data-action="PRED_1">—</div>
@@ -389,9 +381,7 @@
       <div class="key-item pred-slot" data-row="0" data-col="3" data-action="PRED_3">—</div>
     </section>
 
-    <!-- Main Keyboard Stage -->
     <main class="keyboard-stage">
-      <!-- Number / Symbol Row -->
       <div class="key-row" data-row-index="1">
         <div class="key-item" data-row="1" data-col="0" data-key="~">~</div>
         <div class="key-item" data-row="1" data-col="1" data-key="1">1</div>
@@ -409,7 +399,6 @@
         <div class="key-item action-key" data-row="1" data-col="13" data-action="BACKSPACE">⌫</div>
       </div>
 
-      <!-- QWERTY Row -->
       <div class="key-row" data-row-index="2">
         <div class="key-item action-key" data-row="2" data-col="0" data-action="TAB">Tab</div>
         <div class="key-item" data-row="2" data-col="1" data-key="Q">Q</div>
@@ -427,7 +416,6 @@
         <div class="key-item" data-row="2" data-col="13" data-key="|">|</div>
       </div>
 
-      <!-- ASDF Row -->
       <div class="key-row" data-row-index="3">
         <div class="key-item action-key purple-caps" data-row="3" data-col="0" data-action="CAPS">Caps</div>
         <div class="key-item" data-row="3" data-col="1" data-key="A">A</div>
@@ -441,10 +429,9 @@
         <div class="key-item" data-row="3" data-col="9" data-key="L">L</div>
         <div class="key-item" data-row="3" data-col="10" data-key=";">;</div>
         <div class="key-item" data-row="3" data-col="11" data-key="'">'</div>
-        <div class="key-item action-key enter-key" data-row="3" data-col="12" data-action="ENTER">Enter</div>
+        <div class="key-item action-key enter-key" data-row="3" data-col="12" data-action="ENTER">Enter ↵</div>
       </div>
 
-      <!-- ZXCV Row -->
       <div class="key-row" data-row-index="4">
         <div class="key-item action-key" data-row="4" data-col="0" data-action="SHIFT">Shift</div>
         <div class="key-item" data-row="4" data-col="1" data-key="Z">Z</div>
@@ -460,23 +447,20 @@
         <div class="key-item action-key" data-row="4" data-col="11" data-action="SHIFT">Shift</div>
       </div>
 
-      <!-- BOTTOM CONTROL ROW -->
       <div class="key-row bottom-controls" data-row-index="5">
         <div class="key-item action-key" data-row="5" data-col="0" data-action="ALT">Alt</div>
         <div class="key-item space-key" data-row="5" data-col="1" data-action="SPACE">Space</div>
         <div class="key-item action-key" data-row="5" data-col="2" data-action="CTRL">Ctrl</div>
         <div class="key-item action-key" data-row="5" data-col="3" data-action="ALT">Alt</div>
-        <div class="key-item action-key" data-row="5" data-col="4" data-action="SPEAK">🔊 Speak & Inject</div>
+        <div class="key-item action-key" data-row="5" data-col="4" data-action="SPEAK">🔊 Speak &amp; Inject</div>
       </div>
     </main>
   </div>
 
-  <!-- CENTER SPRING-RETURN DOT -->
   <div id="center-spring-anchor" class="center-spring-dot armed" title="Look here to re-arm joystick spring">
     <div class="inner-white-core"></div>
   </div>
 
-  <!-- 9-POINT CALIBRATION OVERLAY -->
   <div id="calib-overlay" class="calib-overlay hidden">
     <div class="calib-dot" data-pt="0" style="left: 28px; top: 28px;"></div>
     <div class="calib-dot" data-pt="1" style="left: 50%; top: 28px;"></div>
@@ -499,16 +483,10 @@
   </div>
 
   <script>
-    /**
-     * Virtual Keyboard Frontend Engine (keyboard.js)
-     * - Connects to master_engine.py on ws://localhost:8765
-     * - Hands-Free 9-Point Blink Calibration when 'C' is pressed
-     * - Left Wink = Select key/prediction | Right Wink / Speak = Inject typed text back to website
-     */
-
     const WS_URL = "ws://localhost:8765";
     let activeSocket = null;
     let isCalibrating = false;
+    let isUpperCase = true;
 
     const DICTIONARY = [
       "HELLO", "HELL", "HELP", "HELD", "HEALTH", "HEAR", "HEART", "HEAT", "HEAVY",
@@ -602,8 +580,24 @@
 
       for (let i = 0; i < 4; i++) {
         const slot = document.querySelector(`.pred-slot[data-col="${i}"]`);
-        if (slot) slot.textContent = currentPredictions[i] || "—";
+        if (slot) {
+          const w = currentPredictions[i] || "—";
+          slot.textContent = isUpperCase ? w : w.toLowerCase();
+        }
       }
+    }
+
+    function toggleLetterCase() {
+      isUpperCase = !isUpperCase;
+      document.querySelectorAll(".key-item[data-key]").forEach((el) => {
+        const k = el.getAttribute("data-key");
+        if (/^[a-z]$/i.test(k)) {
+          const nextChar = isUpperCase ? k.toUpperCase() : k.toLowerCase();
+          el.setAttribute("data-key", nextChar);
+          el.textContent = nextChar;
+        }
+      });
+      updatePredictions();
     }
 
     function renderActiveSelection() {
@@ -641,25 +635,34 @@
     }
 
     function replaceLastPartialWord(newWord) {
+      const formatted = isUpperCase ? newWord.toUpperCase() : newWord.toLowerCase();
       if (!typedBuffer || typedBuffer.endsWith(" ")) {
-        typedBuffer += newWord + " ";
+        typedBuffer += formatted + " ";
       } else {
         const lastSpaceIdx = typedBuffer.lastIndexOf(" ");
-        typedBuffer = lastSpaceIdx === -1 ? newWord + " " : typedBuffer.slice(0, lastSpaceIdx + 1) + newWord + " ";
+        typedBuffer = lastSpaceIdx === -1 ? formatted + " " : typedBuffer.slice(0, lastSpaceIdx + 1) + formatted + " ";
       }
     }
 
     function injectTypedText() {
       if (isCalibrating) return;
       const clean = (typedBuffer || "").trim();
-      const message = clean ? clean : "Please type something first";
+      if (!clean) {
+        ttsBannerEl.textContent = "🔊 Please type something first";
+        ttsBannerEl.classList.add("speaking");
+        setTimeout(() => ttsBannerEl.classList.remove("speaking"), 2000);
+        if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          activeSocket.send(JSON.stringify({ type: "speak_text", text: "Please type something first" }));
+        }
+        return;
+      }
 
-      ttsBannerEl.textContent = `🔊 Injecting: "${message}"`;
+      ttsBannerEl.textContent = `🔊 Injecting: "${clean}"`;
       ttsBannerEl.classList.add("speaking");
       setTimeout(() => ttsBannerEl.classList.remove("speaking"), 2500);
 
       if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
-        activeSocket.send(JSON.stringify({ command: "inject_text", text: message }));
+        activeSocket.send(JSON.stringify({ type: "inject_text", text: clean }));
       }
     }
 
@@ -685,6 +688,8 @@
           typedBuffer = typedBuffer.slice(0, -1);
         } else if (action === "SPACE") {
           if (!typedBuffer.endsWith(" ")) typedBuffer += " ";
+        } else if (action === "CAPS" || action === "SHIFT") {
+          toggleLetterCase();
         } else if (action === "SPEAK" || action === "ENTER") {
           injectTypedText();
         }
@@ -705,7 +710,11 @@
 
       const pt = data.pt || 0;
       calibTitleEl.textContent = `HANDS-FREE 9-POINT CALIBRATION (${pt + 1}/9)`;
-      calibProgressEl.textContent = data.recording ? `Capturing ${data.samples}/${data.needed}... Keep looking at red dot!` : "";
+      calibProgressEl.textContent = data.recording
+        ? `Capturing ${data.samples}/${data.needed}... Keep looking at dot!`
+        : data.blink_primed
+        ? "Blink detected — open your eyes on the dot to capture!"
+        : "";
       calibErrorEl.textContent = data.msg || "";
 
       document.querySelectorAll(".calib-dot").forEach((dotEl) => {
@@ -718,7 +727,7 @@
 
     calibBtnEl.addEventListener("click", () => {
       if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
-        activeSocket.send(JSON.stringify({ command: "calibrate" }));
+        activeSocket.send(JSON.stringify({ type: "start_calib" }));
       }
     });
 
@@ -747,33 +756,31 @@
 
       ws.onopen = () => {
         wsIndicatorEl.className = "status-dot online";
-        wsTextEl.textContent = "AuraOS Master Engine Connected (Left Wink = Select | Right Wink = Inject & Return)";
+        wsTextEl.textContent = "Eye Joystick Active (Left Wink = Select | Right Wink / Enter = Speak & Inject)";
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "state") {
-            const dir = data.direction;
-            if (dir === "UP") moveSelection("UP");
-            else if (dir === "DOWN") moveSelection("DOWN");
-            else if (dir === "LEFT") moveSelection("LEFT");
-            else if (dir === "RIGHT") moveSelection("RIGHT");
-
-            if (data.direction === "CENTER") {
+          if (data.type === "calib_state") {
+            renderCalibrationState(data);
+          } else if (data.type === "move") {
+            moveSelection(data.dir);
+          } else if (data.type === "action") {
+            if (data.action === "LEFT_WINK_SELECT") triggerActiveKey();
+            else if (data.action === "RIGHT_WINK_SPEAK") injectTypedText();
+          } else if (data.type === "gesture" && data.action === "BACK") {
+            typedBuffer = typedBuffer.slice(0, -1);
+            typedTextEl.textContent = typedBuffer;
+            updatePredictions();
+          } else if (data.type === "state") {
+            if (data.calibrated && isCalibrating) {
+              renderCalibrationState({ active: false });
+            }
+            if (data.armed) {
               springAnchorEl.classList.remove("return-needed");
             } else {
               springAnchorEl.classList.add("return-needed");
-            }
-          } else if (data.type === "gesture") {
-            if (data.action === "LEFT_WINK") {
-              triggerActiveKey();
-            } else if (data.action === "RIGHT_WINK") {
-              injectTypedText();
-            } else if (data.action === "BACK") {
-              typedBuffer = typedBuffer.slice(0, -1);
-              typedTextEl.textContent = typedBuffer;
-              updatePredictions();
             }
           }
         } catch (err) {}
