@@ -1,3 +1,9 @@
+
+
+https://github.com/user-attachments/assets/554b64c7-ba15-4c2c-b905-d1f468f33e75
+
+
+
 # AuraOS — Eye-Controlled Hands-Free Web Operating System
 
 **Author:** Jayan Rejo  
@@ -14,7 +20,7 @@ Using a standard webcam, AuraOS tracks pupil micro-movements, eye-aspect ratios,
 
 > 📺 [**Click Here to Watch the Full AuraOS Demo Video**](demo.mp4)
 >
-> *(Tip for GitHub: If uploading to GitHub, edit this README on GitHub.com and drag-and-drop your `.mp4` file directly here to generate an automatic embedded player!)*
+
 
 ## 2. Key Features & Innovations
 
